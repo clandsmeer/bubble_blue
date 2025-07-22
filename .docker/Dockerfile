@@ -111,7 +111,7 @@ RUN sudo apt-get -q update \
 # Manually install MAVROS from source in the ws_blue/ workspace
 WORKDIR $USER_WORKSPACE/src/
 ARG MAVROS_RELEASE=ros2
-ARG MAVLINK_RELEASE=release/rolling/mavlink
+ARG MAVLINK_RELEASE=release/jazzy/mavlink
 RUN git clone --depth 1 -b ${MAVROS_RELEASE} https://github.com/mavlink/mavros.git
 RUN git clone --depth 1 --recursive -b ${MAVLINK_RELEASE} https://github.com/ros2-gbp/mavlink-gbp-release.git mavlink
 

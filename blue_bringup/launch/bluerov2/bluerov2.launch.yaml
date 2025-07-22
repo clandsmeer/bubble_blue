@@ -14,6 +14,18 @@ launch:
       default: "false"
 
   - arg:
+      name: use_generic
+      default: "false"
+
+  - arg:
+      name: use_dvl
+      default: "true"
+
+  - arg:
+      name: use_imu
+      default: "true"
+
+  - arg:
       name: localization_source
       default: gazebo
       choice:
@@ -123,3 +135,13 @@ launch:
 
   - include:
       file: $(find-pkg-share message_transforms)/launch/tf.launch.yaml
+
+  - include:
+      file: $(find-pkg-share bubble_sensors)/launch/sensors.launch.yaml
+      arg:
+          - name: use_generic
+            value: $(var use_generic)
+          - name: use_dvl
+            value: $(var use_dvl)
+          - name: use_imu
+            value: $(var use_imu)
