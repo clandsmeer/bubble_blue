@@ -43,15 +43,15 @@ launch:
       exec: performance_dvl
       param:
         - name: noise_stddev
-          value: 0.05
-        - name: bias
           value: 0.001
-        - name: bias_drift
-          value: 0.000001
+        - name: bias
+          value: 0.0001
+        - name: long_term_inaccuracy_percentage
+          value: 0.1
         - name: resolution_mms
           value: 0.1
         - name: angular_twist
-          value: true
+          value: false
         - name: input_topic
           value: "/model/bluerov2/odometry"
         - name: output_topic
@@ -64,14 +64,18 @@ launch:
       if: $(var use_imu)
       exec: vectornav_imu
       param:
-        - name: noise_stddev
-          value: 0.05
-        - name: bias
-          value: 0.001
-        - name: bias_drift
-          value: 0.000001
+        - name: accel_noise_density_mg
+          value: 0.14
+        - name: gyro_noise_density_deg
+          value: 0.0035
+        - name: sample_rate
+          value: 400
+        - name: accel_bias_stability_mghr
+          value: 0.04
+        - name: gyro_bias_stability_deghr
+          value: 10.0
         - name: resolution
-          value: 0.1
+          value: 0.00001
         - name: input_topic
           value: "/model/bluerov2/odometry"
         - name: output_topic

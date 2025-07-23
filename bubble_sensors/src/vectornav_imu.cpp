@@ -11,6 +11,7 @@ for the Blue simulation used by Bubble Robotics. Specific parameters will be upd
 #include <sensor_msgs/msg/imu.hpp>
 #include <geometry_msgs/msg/vector3.hpp>
 #include <random>
+#include <math.h>
 
 class VectornavIMU : public rclcpp::Node
 {
@@ -19,21 +20,24 @@ public:
     {
         // create/read the parameters for the sensor in the constructor:
         //  standard deviation
-        this->declare_parameter<double>("noise_stddev", 0.05);
-        this->get_parameter("noise_stddev", noise_stddev_);
+        this->declare_parameter<double>("accel_noise_density_mg", 0.14);
+        this->get_parameter("accel_noise_density_mg", accel_noise_density_);
+
+        this->declare_parameter<double>("gyro_noise_density_deg", 0.0035);
+        this->get_parameter("gyro_noise_density_deg", gyro_noise_density_);
+
+        this->declare_parameter<int>("sample_rate", 400);
+        this->get_parameter("sample_rate", sample_rate_);
 
         // defining which measurements will be noisy
-        this->declare_parameter<double>("bias", 0.05);
-        this->get_parameter("bias", bias_);
+        this->declare_parameter<double>("accel_bias_stability_mghr", 0.04);
+        this->get_parameter("accel_bias_stability_mghr", accel_bias_stability_);
 
-        this->declare_parameter<double>("bias_drift", 0.05);
-        this->get_parameter("bias_drift", bias_drift_rate_);
+        this->declare_parameter<double>("gyro_bias_stability_deghr", 10);
+        this->get_parameter("gyro_bias_stability_deghr", gyro_bias_stability_);
 
-        this->declare_parameter<double>("resolution", 0.1);
-        this->get_parameter("resolution", resolution_mms_);
-
-        this->declare_parameter<bool>("angular_twist", false);
-        this->get_parameter("angular_twist", measure_ang_twist_);
+        this->declare_parameter<double>("resolution", 0.00001);
+        this->get_parameter("resolution", resolution_);
 
         // Define the incoming and outgoing topics
         this->declare_parameter("input_topic", "/model/bluerov2/odometry");
@@ -52,11 +56,25 @@ public:
             10);
 
         // Declare the covariance
-        cov_ = noise_stddev_ * noise_stddev_ + bias_ * bias_ + bias_drift_rate_ * bias_drift_rate_;
-        resolution_ = resolution_mms_ / 1000;
         first_message_ = true;
 
-        RCLCPP_INFO(this->get_logger(), "Noisy odometry relay started.");
+        // IMU sensor setup
+        //  converting noise density to noise:
+        accel_stddev_ = (accel_noise_density_ * 9.81 / 1000) * std::sqrt(sample_rate_);
+        gyro_stddev_ = (gyro_noise_density_ * M_PI / 180) * std::sqrt(sample_rate_);
+
+        // covariances for acceleration and gyro
+        accel_cov_ = accel_stddev_ * accel_stddev_ + (accel_bias_stability_ * 9.81 / 1000) * (accel_bias_stability_ * 9.81 / 1000);
+        gyro_cov_ = gyro_stddev_ * gyro_stddev_ + (gyro_bias_stability_ * M_PI / 180 / 3600) * (gyro_bias_stability_ * M_PI / 180 / 3600);
+
+        // bias initialization
+        accel_bias_.x = accel_bias_.y = accel_bias_.z = 0;
+        gyro_bias_.x = gyro_bias_.y = gyro_bias_.z = 0;
+
+        // seed the random generator for max bias drift:
+        std::srand(std::time(0)); // seed w/ start time of program
+
+        RCLCPP_INFO(this->get_logger(), "Vectornav IMU Started.");
         RCLCPP_INFO(this->get_logger(), "Subscribing to: %s", input_topic_name_.c_str());
         RCLCPP_INFO(this->get_logger(), "Publishing to: %s", output_topic_name_.c_str());
     }
@@ -67,11 +85,12 @@ private:
         // create the variable that will store the new noisy message
         sensor_msgs::msg::Imu noisy_msg;
 
-        // create a gaussian distribution. Zero-mean w/ specified stddev
-        std::normal_distribution diff(0.0, noise_stddev_);
-
         // first add the header
         noisy_msg.header = msg.header;
+
+        // gaussians for gyro and accelerometer:
+        std::normal_distribution diff_accel_(0.0, accel_stddev_);
+        std::normal_distribution diff_gyro_(0.0, gyro_stddev_);
 
         // do the velocity differentiation to get instantaneous acceleration
         // note that there will be numerical noise
@@ -97,36 +116,45 @@ private:
         geometry_msgs::msg::Vector3 curr_velocity = msg.twist.twist.linear;
         geometry_msgs::msg::Vector3 accel;
 
-        accel.x = std::round(((curr_velocity.x - last_velocity_.x) / dt + diff(rng_generator_)) / resolution_) * resolution_;
-        accel.y = std::round(((curr_velocity.y - last_velocity_.y) / dt + diff(rng_generator_)) / resolution_) * resolution_;
-        accel.z = std::round(((curr_velocity.z - last_velocity_.z) / dt + diff(rng_generator_)) / resolution_) * resolution_;
+        // update the total bias with random walk drift
+        accel_bias_.x += accel_bias_noise_() * dt;
+        accel_bias_.y += accel_bias_noise_() * dt;
+        accel_bias_.z += accel_bias_noise_() * dt;
+
+        gyro_bias_.x += gyro_bias_noise_();
+        gyro_bias_.y += gyro_bias_noise_();
+        gyro_bias_.z += gyro_bias_noise_();
+
+        accel.x = std::round(((curr_velocity.x - last_velocity_.x) / dt + diff_accel_(rng_generator_) + accel_bias_.x) / resolution_) * resolution_;
+        accel.y = std::round(((curr_velocity.y - last_velocity_.y) / dt + diff_accel_(rng_generator_) + accel_bias_.y) / resolution_) * resolution_;
+        accel.z = std::round(((curr_velocity.z - last_velocity_.z) / dt + diff_accel_(rng_generator_) + accel_bias_.z) / resolution_) * resolution_;
 
         noisy_msg.linear_acceleration = accel;
 
         // add noise to angular velocity measurement
-        noisy_msg.angular_velocity.x = std::round((msg.twist.twist.angular.x + diff(rng_generator_)) / resolution_) * resolution_;
-        noisy_msg.angular_velocity.y = std::round((msg.twist.twist.angular.y + diff(rng_generator_)) / resolution_) * resolution_;
-        noisy_msg.angular_velocity.z = std::round((msg.twist.twist.angular.z + diff(rng_generator_)) / resolution_) * resolution_;
+        noisy_msg.angular_velocity.x = std::round((msg.twist.twist.angular.x + diff_gyro_(rng_generator_) + gyro_bias_.x) / resolution_) * resolution_;
+        noisy_msg.angular_velocity.y = std::round((msg.twist.twist.angular.y + diff_gyro_(rng_generator_) + gyro_bias_.y) / resolution_) * resolution_;
+        noisy_msg.angular_velocity.z = std::round((msg.twist.twist.angular.z + diff_gyro_(rng_generator_) + gyro_bias_.z) / resolution_) * resolution_;
 
         // add noise to orientation measurement
-        noisy_msg.orientation.x = std::round((msg.pose.pose.orientation.x + diff(rng_generator_)) / resolution_) * resolution_;
-        noisy_msg.orientation.y = std::round((msg.pose.pose.orientation.y + diff(rng_generator_)) / resolution_) * resolution_;
-        noisy_msg.orientation.z = std::round((msg.pose.pose.orientation.z + diff(rng_generator_)) / resolution_) * resolution_;
-        noisy_msg.orientation.w = std::round((msg.pose.pose.orientation.w + diff(rng_generator_)) / resolution_) * resolution_;
+        // noisy_msg.orientation.x = std::round((msg.pose.pose.orientation.x + diff_gyro_(rng_generator_)) / resolution_) * resolution_;
+        // noisy_msg.orientation.y = std::round((msg.pose.pose.orientation.y + diff_gyro_(rng_generator_)) / resolution_) * resolution_;
+        // noisy_msg.orientation.z = std::round((msg.pose.pose.orientation.z + diff_gyro_(rng_generator_)) / resolution_) * resolution_;
+        // noisy_msg.orientation.w = std::round((msg.pose.pose.orientation.w + diff_gyro_(rng_generator_)) / resolution_) * resolution_;
 
         // add the covariances
         // MAY NEED THIS LATER SO NOT DELETING IT. add covariance for state estimation pipeline. Since there is an EKF on the sensor itself, this should be provided for us
-        noisy_msg.orientation_covariance[0] = cov_;
-        noisy_msg.orientation_covariance[4] = cov_;
-        noisy_msg.orientation_covariance[8] = cov_;
+        noisy_msg.orientation_covariance[0] = -1;
+        noisy_msg.orientation_covariance[4] = -1;
+        noisy_msg.orientation_covariance[8] = -1;
 
-        noisy_msg.angular_velocity_covariance[0] = cov_;
-        noisy_msg.angular_velocity_covariance[4] = cov_;
-        noisy_msg.angular_velocity_covariance[8] = cov_;
+        noisy_msg.angular_velocity_covariance[0] = gyro_cov_;
+        noisy_msg.angular_velocity_covariance[4] = gyro_cov_;
+        noisy_msg.angular_velocity_covariance[8] = gyro_cov_;
 
-        noisy_msg.linear_acceleration_covariance[0] = cov_;
-        noisy_msg.linear_acceleration_covariance[4] = cov_;
-        noisy_msg.linear_acceleration_covariance[8] = cov_;
+        noisy_msg.linear_acceleration_covariance[0] = accel_cov_;
+        noisy_msg.linear_acceleration_covariance[4] = accel_cov_;
+        noisy_msg.linear_acceleration_covariance[8] = accel_cov_;
 
         // Update for next iteration
         last_velocity_ = curr_velocity;
@@ -136,21 +164,50 @@ private:
         measurement_publisher->publish(noisy_msg);
     }
 
+    // function that adds bias noise to a measurement:
+    double accel_bias_noise_()
+    {
+        std::normal_distribution<double> bias_dist(0.0, accel_bias_stability_ * 9.81 / 1000);
+        return bias_dist(rng_generator_);
+    }
+
+    double gyro_bias_noise_()
+    {
+        std::normal_distribution<double> bias_dist(0.0, gyro_bias_stability_ * (M_PI / 180) / 3600);
+        return bias_dist(rng_generator_);
+    }
+    // declare ros pubsub
     rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odometry_subscription;
     rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr measurement_publisher;
-    double noise_stddev_;
+
+    // parameter variables(imported from sensors.launch.yaml)
+    double accel_noise_density_;
+    int sample_rate_;
+    double gyro_noise_density_;
+    double accel_bias_stability_;
+    double gyro_bias_stability_;
     double bias_drift_rate_;
+    double total_drift_;
     double bias_;
-    double cov_;
     double resolution_;
     double resolution_mms_;
     bool measure_ang_twist_;
-    geometry_msgs::msg::Vector3 last_velocity_;
+
+    // Extra variables needed for the sim
+    double accel_cov_;
+    double gyro_cov_;
+    double accel_stddev_;
+    double gyro_stddev_;
+    geometry_msgs::msg::Vector3 last_velocity_; // to derive acceleration
+    geometry_msgs::msg::Vector3 accel_bias_;
+    geometry_msgs::msg::Vector3 gyro_bias_;
     rclcpp::Time last_time_;
     bool first_message_;
     std::string input_topic_name_;
     std::string output_topic_name_;
     std::default_random_engine rng_generator_;
+    std::normal_distribution<double> diff_accel_;
+    std::normal_distribution<double> diff_gyro_;
 };
 
 // define the main function which actually spins the sensor up
