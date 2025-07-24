@@ -17,7 +17,7 @@ class VectornavIMU : public rclcpp::Node
 {
 public:
   VectornavIMU()
-      : Node("vectornav_imu")
+  : Node("vectornav_imu")
   {
     // create/read the parameters for the sensor in the constructor:
     //  standard deviation
@@ -66,9 +66,9 @@ public:
 
     // covariances for acceleration and gyro
     accel_cov_ = accel_stddev_ * accel_stddev_ + (accel_bias_stability_ * 9.81 / 1000) *
-                                                     (accel_bias_stability_ * 9.81 / 1000);
+      (accel_bias_stability_ * 9.81 / 1000);
     gyro_cov_ = gyro_stddev_ * gyro_stddev_ + (gyro_bias_stability_ * M_PI / 180 / 3600) *
-                                                  (gyro_bias_stability_ * M_PI / 180 / 3600);
+      (gyro_bias_stability_ * M_PI / 180 / 3600);
 
     // bias initialization
     // accel_bias_.x = accel_bias_.y = accel_bias_.z = 0;
@@ -83,7 +83,7 @@ public:
   }
 
 private:
-  void odom_callback(const nav_msgs::msg::Odometry &msg)
+  void odom_callback(const nav_msgs::msg::Odometry & msg)
   {
     // create the variable that will store the new noisy message
     sensor_msgs::msg::Imu noisy_msg;
@@ -97,8 +97,7 @@ private:
 
     // do the velocity differentiation to get instantaneous acceleration
     // note that there will be numerical noise
-    if (first_message_)
-    {
+    if (first_message_) {
       last_velocity_ = msg.twist.twist.linear;
       last_time_ = rclcpp::Time(msg.header.stamp);
       first_message_ = false;
@@ -108,8 +107,7 @@ private:
     rclcpp::Time current_time = rclcpp::Time(msg.header.stamp);
     double dt = (current_time - last_time_).seconds();
 
-    if (dt <= 0 || dt >= 1)
-    {
+    if (dt <= 0 || dt >= 1) {
       last_velocity_ = msg.twist.twist.linear;
       last_time_ = current_time;
       RCLCPP_WARN(this->get_logger(), "Invalid dt for acceleration derivation: %f", dt);
@@ -133,33 +131,33 @@ private:
     // gyro_bias_.z = gyro_bias_noise_();
 
     accel.x = std::round(((curr_velocity.x - last_velocity_.x) / dt + diff_accel_(rng_generator_) +
-                          accel_bias_noise_()) /
+        accel_bias_noise_()) /
                          resolution_) *
-              resolution_;
+      resolution_;
     accel.y = std::round(((curr_velocity.y - last_velocity_.y) / dt + diff_accel_(rng_generator_) +
-                          accel_bias_noise_()) /
+        accel_bias_noise_()) /
                          resolution_) *
-              resolution_;
+      resolution_;
     accel.z = std::round(((curr_velocity.z - last_velocity_.z) / dt + diff_accel_(rng_generator_) +
-                          accel_bias_noise_()) /
+        accel_bias_noise_()) /
                          resolution_) *
-              resolution_;
+      resolution_;
 
     noisy_msg.linear_acceleration = accel;
 
     // add noise to angular velocity measurement
     noisy_msg.angular_velocity.x = std::round((msg.twist.twist.angular.x +
-                                               diff_gyro_(rng_generator_) + gyro_bias_noise_()) /
+        diff_gyro_(rng_generator_) + gyro_bias_noise_()) /
                                               resolution_) *
-                                   resolution_;
+      resolution_;
     noisy_msg.angular_velocity.y = std::round((msg.twist.twist.angular.y +
-                                               diff_gyro_(rng_generator_) + gyro_bias_noise_()) /
+        diff_gyro_(rng_generator_) + gyro_bias_noise_()) /
                                               resolution_) *
-                                   resolution_;
+      resolution_;
     noisy_msg.angular_velocity.z = std::round((msg.twist.twist.angular.z +
-                                               diff_gyro_(rng_generator_) + gyro_bias_noise_()) /
+        diff_gyro_(rng_generator_) + gyro_bias_noise_()) /
                                               resolution_) *
-                                   resolution_;
+      resolution_;
 
     // add noise to orientation measurement
     // noisy_msg.orientation.x = std::round((msg.pose.pose.orientation.x + diff_gyro_(rng_generator_)) / resolution_) * resolution_;
