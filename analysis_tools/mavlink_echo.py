@@ -7,6 +7,7 @@ def main():
     "messages from a MAVLink device." \
     "\nType the \nOptional Arguments:" \
     "\n\t--device <device-address>")
+
     parser.add_argument(
         '--device',
         type=str,
@@ -25,8 +26,8 @@ def main():
 
     print("Waiting for heartbeat...")
     master.wait_heartbeat()
-    print(f"Heartbeat received from system {master.target_system},
-           component {master.target_component}\n")
+    print(f"Heartbeat received from system {master.target_system}," \
+           f"component {master.target_component}\n")
 
     print(f"Monitoring MAVLink messages: {', '.join(args.messages)}\n")
     try:
