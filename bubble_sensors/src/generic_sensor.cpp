@@ -1,18 +1,18 @@
 #include "rclcpp/rclcpp.hpp"
 #include "nav_msgs/msg/odometry.hpp"
-#include <random> 
+#include <random>
 
-class GenericSensor : public rclcpp::Node 
+class GenericSensor : public rclcpp::Node
 {
-    public: 
+public:
     GenericSensor() : Node("generic_sensor")
     {
-        //create the parameters for the sensor: 
-        // standard deviation 
+        // create the parameters for the sensor:
+        //  standard deviation
         this->declare_parameter<double>("noise_stddev", 0.05);
-        this->get_parameter("noise_stddev", noise_stddev_); 
+        this->get_parameter("noise_stddev", noise_stddev_);
 
-        // defining which measurements will be noisy 
+        // defining which measurements will be noisy
         this->declare_parameter<bool>("position_meas", true);
         this->get_parameter("position_meas", measure_position);
 
@@ -33,10 +33,10 @@ class GenericSensor : public rclcpp::Node
         this->get_parameter("output_topic", output_topic_name);
 
         odometry_subscription = this->create_subscription<nav_msgs::msg::Odometry>(
-            input_topic_name, 
-            10, 
+            input_topic_name,
+            10,
             std::bind(&GenericSensor::odom_callback, this, std::placeholders::_1));
-        
+
         measurement_publisher = this->create_publisher<nav_msgs::msg::Odometry>(
             output_topic_name,
             10);
@@ -46,63 +46,66 @@ class GenericSensor : public rclcpp::Node
         RCLCPP_INFO(this->get_logger(), "Publishing to: %s", output_topic_name.c_str());
     }
 
-    private: 
-
-    void odom_callback(const nav_msgs::msg::Odometry& msg)
+private:
+    void odom_callback(const nav_msgs::msg::Odometry &msg)
     {
-        // create the variable that will store the new noisy message 
-        auto noisy_msg = msg; 
-        
-        //create a gaussian distribution 
+        // create the variable that will store the new noisy message
+        auto noisy_msg = msg;
+
+        // create a gaussian distribution
         std::normal_distribution diff(0.0, noise_stddev_);
 
-        // adding noise to the measurement depending on which  
-        if (measure_position){
+        // adding noise to the measurement depending on which
+        if (measure_position)
+        {
             // If sensor measures position, add noise to position
             noisy_msg.pose.pose.position.x += diff(rng_generator);
             noisy_msg.pose.pose.position.y += diff(rng_generator);
             noisy_msg.pose.pose.position.z += diff(rng_generator);
         }
 
-        if (measure_ang_orient){
+        if (measure_ang_orient)
+        {
             // If sensor measures position, add noise to position
             noisy_msg.pose.pose.orientation.x += diff(rng_generator);
             noisy_msg.pose.pose.orientation.y += diff(rng_generator);
             noisy_msg.pose.pose.orientation.z += diff(rng_generator);
         }
 
-        if (measure_pos_twist){
+        if (measure_pos_twist)
+        {
             noisy_msg.twist.twist.linear.x += diff(rng_generator);
             noisy_msg.twist.twist.linear.y += diff(rng_generator);
             noisy_msg.twist.twist.linear.z += diff(rng_generator);
         }
 
-        if (measure_ang_twist){
+        if (measure_ang_twist)
+        {
             noisy_msg.twist.twist.angular.x += diff(rng_generator);
             noisy_msg.twist.twist.angular.y += diff(rng_generator);
             noisy_msg.twist.twist.angular.z += diff(rng_generator);
         }
 
-        measurement_publisher->publish(noisy_msg); 
+        measurement_publisher->publish(noisy_msg);
     }
 
-    rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odometry_subscription; 
-    rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr measurement_publisher; 
-    double noise_stddev_; 
-    bool measure_position; 
-    bool measure_ang_orient; 
-    bool measure_pos_twist; 
-    bool measure_ang_twist; 
-    std::string input_topic_name; 
-    std::string output_topic_name; 
-    std::default_random_engine rng_generator; 
+    rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odometry_subscription;
+    rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr measurement_publisher;
+    double noise_stddev_;
+    bool measure_position;
+    bool measure_ang_orient;
+    bool measure_pos_twist;
+    bool measure_ang_twist;
+    std::string input_topic_name;
+    std::string output_topic_name;
+    std::default_random_engine rng_generator;
 };
 
-//define the main function which actually spins the sensor up
-int main(int argc, char * argv[])
+// define the main function which actually spins the sensor up
+int main(int argc, char *argv[])
 {
-  rclcpp::init(argc, argv);
-  rclcpp::spin(std::make_shared<GenericSensor>());
-  rclcpp::shutdown();
-  return 0;
+    rclcpp::init(argc, argv);
+    rclcpp::spin(std::make_shared<GenericSensor>());
+    rclcpp::shutdown();
+    return 0;
 }
