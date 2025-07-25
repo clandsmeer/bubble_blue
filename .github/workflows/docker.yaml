@@ -106,7 +106,13 @@ jobs:
         run: |
           ls -la .docker/
           cat .docker/docker-bake.hcl | head -10
-
+      - name: Debug PUSH Environment
+        run: |
+          echo "Event name: ${{ github.event_name }}"
+          echo "Repository: ${{ github.repository }}"
+          echo "Ref: ${{ github.ref }}"
+          echo "Is PUSH: ${{ env.PUSH }}"
+          
       - if: github.event_name == 'push'
         name: Build and push (non PR)
         uses: docker/bake-action@v6.5.0
