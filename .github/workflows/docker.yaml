@@ -82,7 +82,7 @@ jobs:
           bake-target: docker-metadata-action-robot
           tags: |
             type=raw,value=${{ matrix.ROS_DISTRO }}-robot
-
+      #Checking if moving to just a direct push allows the container to be built
       - name: Set Docker metadata for "desktop"
         if: env.PUSH == 'true'
         id: meta-desktop
