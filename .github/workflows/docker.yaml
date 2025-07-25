@@ -112,7 +112,10 @@ jobs:
           echo "Repository: ${{ github.repository }}"
           echo "Ref: ${{ github.ref }}"
           echo "Is PUSH: ${{ env.PUSH }}"
-          
+          echo "meta-ci: ${{ steps.meta-ci.outputs.bake-file }}"
+          echo "meta-robot: ${{ steps.meta-robot.outputs.bake-file }}"
+          echo "meta-desktop: ${{ steps.meta-desktop.outputs.bake-file }}"
+
       - if: github.event_name == 'push'
         name: Build and push (non PR)
         uses: docker/bake-action@v6.5.0
