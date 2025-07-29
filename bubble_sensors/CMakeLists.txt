@@ -17,19 +17,21 @@ find_package(mavlink REQUIRED)
 find_package(diagnostic_updater REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(tf2 REQUIRED)
+find_package(tf2_ros REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(pluginlib REQUIRED)
+
 # uncomment the following section in order to fill in
 # further dependencies manually.
 # find_package(<dependency> REQUIRED)
 
-#Add the executable and target
+# Add the executable and target
 add_executable(generic_sensor_publisher src/generic_sensor.cpp)
 add_executable(performance_dvl src/waterlinked_performance_dvl.cpp)
 add_executable(vectornav_imu src/vectornav_imu.cpp)
 ament_target_dependencies(generic_sensor_publisher rclcpp nav_msgs)
 ament_target_dependencies(performance_dvl rclcpp nav_msgs geometry_msgs)
-ament_target_dependencies(vectornav_imu rclcpp nav_msgs sensor_msgs)
+ament_target_dependencies(vectornav_imu rclcpp nav_msgs sensor_msgs tf2 tf2_ros tf2_geometry_msgs)
 
 add_library(mavros_sensor_plugin SHARED src/mavros_sensor_plugin.cpp)
 target_include_directories(mavros_sensor_plugin PUBLIC
@@ -46,6 +48,7 @@ ament_target_dependencies(mavros_sensor_plugin
   geometry_msgs
   sensor_msgs
   tf2
+  tf2_ros
   tf2_geometry_msgs
   pluginlib)
 
@@ -64,17 +67,19 @@ install(DIRECTORY include/
 install(FILES mavros_plugins.xml
   DESTINATION share/${PROJECT_NAME})
 
-#make sure the launch directory can be accessed so the overall bringup file can launch sensors
+# make sure the launch directory can be accessed so the overall bringup file can launch sensors
 install(
-  DIRECTORY launch
+  DIRECTORY launch config
   DESTINATION share/bubble_sensors
 )
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
+
   # the following line skips the linter which checks for copyrights
   # comment the line when a copyright and license is added to all source files
   set(ament_cmake_copyright_FOUND TRUE)
+
   # the following line skips cpplint (only works in a git repo)
   # comment the line when this package is in a git repo and when
   # a copyright and license is added to all source files

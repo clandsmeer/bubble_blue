@@ -14,11 +14,13 @@
   <depend>sensor_msgs</depend>
   <depend>mavros</depend>
   <depend>mavros_msgs</depend>
+  <depend>robot_localization</depend>
   <depend>libmavconn</depend>
   <depend>mavlink</depend>
   <depend>diagnostic_updater</depend>
   <depend>geometry_msgs</depend>
   <depend>tf2</depend>
+  <depend>tf2_ros</depend>
   <depend>tf2_geometry_msgs</depend>
   <depend>pluginlib</depend>
 
