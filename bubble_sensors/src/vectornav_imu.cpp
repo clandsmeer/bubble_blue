@@ -26,9 +26,9 @@ class VectornavIMU : public rclcpp::Node
 {
 public:
   VectornavIMU()
-      : Node("vectornav_imu"),
-        tf_buffer_(this->get_clock()),
-        tf_listener_(tf_buffer_)
+  : Node("vectornav_imu"),
+    tf_buffer_(this->get_clock()),
+    tf_listener_(tf_buffer_)
   {
     // create/read the parameters for the sensor in the constructor:
     //  standard deviation
@@ -77,9 +77,9 @@ public:
 
     // covariances for acceleration and gyro
     accel_cov_ = accel_stddev_ * accel_stddev_ + (accel_bias_stability_ * 9.81 / 1000) *
-                                                     (accel_bias_stability_ * 9.81 / 1000);
+      (accel_bias_stability_ * 9.81 / 1000);
     gyro_cov_ = gyro_stddev_ * gyro_stddev_ + (gyro_bias_stability_ * M_PI / 180 / 3600) *
-                                                  (gyro_bias_stability_ * M_PI / 180 / 3600);
+      (gyro_bias_stability_ * M_PI / 180 / 3600);
 
     // bias initialization
     // accel_bias_.x = accel_bias_.y = accel_bias_.z = 0;
@@ -94,15 +94,15 @@ public:
   }
 
 private:
-  void odom_callback(const nav_msgs::msg::Odometry &msg)
+  void odom_callback(const nav_msgs::msg::Odometry & msg)
   {
     // create the variable that will store the new noisy message
     sensor_msgs::msg::Imu noisy_msg;
 
     // try to get the transform from ROS
-    try
-    {
-      geometry_msgs::msg::TransformStamped transform_stamped = tf_buffer_.lookupTransform("base_link", "map", tf2::TimePointZero);
+    try {
+      geometry_msgs::msg::TransformStamped transform_stamped =
+        tf_buffer_.lookupTransform("base_link", "map", tf2::TimePointZero);
 
       // create the variables for pose in map and base:
       geometry_msgs::msg::PoseStamped pose_in_map, pose_in_base;
@@ -115,21 +115,23 @@ private:
       // doTransform doesn't support conversion of TwistStamped messages
       geometry_msgs::msg::TwistStamped twist_in_base;
       tf2::Quaternion q(
-          transform_stamped.transform.rotation.x,
-          transform_stamped.transform.rotation.y,
-          transform_stamped.transform.rotation.z,
-          transform_stamped.transform.rotation.w);
+        transform_stamped.transform.rotation.x,
+        transform_stamped.transform.rotation.y,
+        transform_stamped.transform.rotation.z,
+        transform_stamped.transform.rotation.w);
 
       tf2::Matrix3x3 rot(q);
 
-      tf2::Vector3 v_ang(msg.twist.twist.angular.x, msg.twist.twist.angular.y, msg.twist.twist.angular.z);
+      tf2::Vector3 v_ang(msg.twist.twist.angular.x, msg.twist.twist.angular.y,
+        msg.twist.twist.angular.z);
       v_ang = rot * v_ang;
       twist_in_base.twist.angular.x = v_ang.x();
       twist_in_base.twist.angular.y = v_ang.y();
       twist_in_base.twist.angular.z = v_ang.z();
 
       // NOTE: THIS ESTIMATE FOR LINEAR VELOCITY IS WRONG BUT JUST CHECKING TO MAKE SURE EKF OUTPUTS
-      tf2::Vector3 v_lin(msg.twist.twist.linear.x, msg.twist.twist.linear.y, msg.twist.twist.linear.z);
+      tf2::Vector3 v_lin(msg.twist.twist.linear.x, msg.twist.twist.linear.y,
+        msg.twist.twist.linear.z);
       v_lin = rot * v_lin;
       twist_in_base.twist.linear.x = v_lin.x();
       twist_in_base.twist.linear.y = v_lin.y();
@@ -144,8 +146,7 @@ private:
 
       // do the velocity differentiation to get instantaneous acceleration
       // note that there will be numerical noise
-      if (first_message_)
-      {
+      if (first_message_) {
         last_velocity_ = msg.twist.twist.linear;
         last_time_ = rclcpp::Time(msg.header.stamp);
         first_message_ = false;
@@ -155,8 +156,7 @@ private:
       rclcpp::Time current_time = rclcpp::Time(msg.header.stamp);
       double dt = (current_time - last_time_).seconds();
 
-      if (dt <= 0 || dt >= 1)
-      {
+      if (dt <= 0 || dt >= 1) {
         last_velocity_ = msg.twist.twist.linear;
         last_time_ = current_time;
         RCLCPP_WARN(this->get_logger(), "Invalid dt for acceleration derivation: %f", dt);
@@ -178,34 +178,37 @@ private:
       // gyro_bias_.y = gyro_bias_noise_();
       // gyro_bias_.z = gyro_bias_noise_();
 
-      accel.x = std::round(((curr_velocity.x - last_velocity_.x) / dt + diff_accel_(rng_generator_) +
-                            accel_bias_noise_()) /
+      accel.x = std::round(((curr_velocity.x - last_velocity_.x) / dt +
+          diff_accel_(rng_generator_) +
+          accel_bias_noise_()) /
                            resolution_) *
-                resolution_;
-      accel.y = std::round(((curr_velocity.y - last_velocity_.y) / dt + diff_accel_(rng_generator_) +
-                            accel_bias_noise_()) /
+        resolution_;
+      accel.y = std::round(((curr_velocity.y - last_velocity_.y) / dt +
+          diff_accel_(rng_generator_) +
+          accel_bias_noise_()) /
                            resolution_) *
-                resolution_;
-      accel.z = std::round(((curr_velocity.z - last_velocity_.z) / dt + diff_accel_(rng_generator_) +
-                            accel_bias_noise_()) /
+        resolution_;
+      accel.z = std::round(((curr_velocity.z - last_velocity_.z) / dt +
+          diff_accel_(rng_generator_) +
+          accel_bias_noise_()) /
                            resolution_) *
-                resolution_;
+        resolution_;
 
       noisy_msg.linear_acceleration = accel;
 
       // add noise to angular velocity measurement
       noisy_msg.angular_velocity.x = std::round((twist_in_base.twist.angular.x +
-                                                 diff_gyro_(rng_generator_) + gyro_bias_noise_()) /
+          diff_gyro_(rng_generator_) + gyro_bias_noise_()) /
                                                 resolution_) *
-                                     resolution_;
+        resolution_;
       noisy_msg.angular_velocity.y = std::round((twist_in_base.twist.angular.y +
-                                                 diff_gyro_(rng_generator_) + gyro_bias_noise_()) /
+          diff_gyro_(rng_generator_) + gyro_bias_noise_()) /
                                                 resolution_) *
-                                     resolution_;
+        resolution_;
       noisy_msg.angular_velocity.z = std::round((twist_in_base.twist.angular.z +
-                                                 diff_gyro_(rng_generator_) + gyro_bias_noise_()) /
+          diff_gyro_(rng_generator_) + gyro_bias_noise_()) /
                                                 resolution_) *
-                                     resolution_;
+        resolution_;
 
       // add noise to orientation measurement
       // noisy_msg.orientation.x = std::round((msg.pose.pose.orientation.x + diff_gyro_(rng_generator_)) / resolution_) * resolution_;
@@ -233,9 +236,7 @@ private:
 
       // publish the message
       measurement_publisher->publish(noisy_msg);
-    }
-    catch (tf2::TransformException &ex)
-    {
+    } catch (tf2::TransformException & ex) {
       RCLCPP_WARN(this->get_logger(), "Transform failed: %s", ex.what());
     }
   }
