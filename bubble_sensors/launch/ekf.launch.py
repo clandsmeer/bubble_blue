@@ -23,6 +23,7 @@ def generate_launch_description():
     using parameters from a YAML file.
 
     Returns
+    -------
         LaunchDescription: A complete launch description for the EKF node
     """
     # Constants for paths to different files and folders
