@@ -15,6 +15,10 @@ launch:
       name: use_imu
       default: "true"
 
+  - arg:
+      name: use_ekf
+      default: "false"
+
   - node:
       pkg: bubble_sensors
       if: $(var use_generic)
@@ -82,3 +86,20 @@ launch:
           value: "/vn100/imu"
         - name: use_sim_time
           value: $(var use_sim)
+
+  # Define the transformations from the base link into the dvl and imu frames
+  - node:
+      pkg: tf2_ros
+      exec: static_transform_publisher
+      name: base_link_to_dvl
+      args: --x 0.0 --y 0.0 --z 0.0 --roll 0.0 --pitch 0.0 --yaw 0.0 --frame-id base_link --child-frame-id dvl
+
+  - node:
+      pkg: tf2_ros
+      exec: static_transform_publisher
+      name: base_link_to_vn100
+      args: --x 0.0 --y 0.0 --z 0.0 --roll 0.0 --pitch 0.0 --yaw 0.0 --frame-id base_link --child-frame-id vn100
+
+  - include:
+      if: $(var use_ekf)
+      file: $(find-pkg-share bubble_sensors)/launch/ekf.launch.py

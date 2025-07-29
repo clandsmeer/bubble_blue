@@ -49,8 +49,10 @@ from rclpy.qos import (
 )
 from scipy.spatial.transform import Rotation as R
 from sensor_msgs.msg import CameraInfo, Image
-from tf2_ros import TransformException  # type: ignore
-from tf2_ros import Time
+from tf2_ros import (
+    Time,
+    TransformException,  # type: ignore
+)
 from tf2_ros.buffer import Buffer
 from tf2_ros.transform_listener import TransformListener
 

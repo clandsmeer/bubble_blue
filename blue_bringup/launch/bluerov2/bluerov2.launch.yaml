@@ -26,6 +26,10 @@ launch:
       default: "true"
 
   - arg:
+      name: use_ekf
+      default: "false"
+
+  - arg:
       name: localization_source
       default: gazebo
       choice:
@@ -145,3 +149,5 @@ launch:
             value: $(var use_dvl)
           - name: use_imu
             value: $(var use_imu)
+          - name: use_ekf
+            value: $(var use_ekf)
