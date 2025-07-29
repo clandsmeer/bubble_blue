@@ -2,6 +2,7 @@
 
 """
 This is the Launch file for the EKF node in the robot_localization package in ros2.
+
 This node will take in the ekf.yaml file in the config folder of bubble_sensors,
 and should read from the DVL, the
 """
@@ -16,7 +17,8 @@ from launch_ros.substitutions import FindPackageShare
 
 
 def generate_launch_description():
-    """Generate a launch description for the EKF node.
+    """
+    Generate a launch description for the EKF node.
 
     This function creates and returns a LaunchDescription object that will start
     the EKF node from the robot_localization package. The node is configured
@@ -24,7 +26,8 @@ def generate_launch_description():
 
     Returns
     -------
-        LaunchDescription: A complete launch description for the EKF node
+    LaunchDescription: A complete launch description for the EKF node
+
     """
     # Constants for paths to different files and folders
     package_name = 'bubble_sensors'
