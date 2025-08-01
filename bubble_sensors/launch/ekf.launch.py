@@ -49,13 +49,13 @@ def generate_launch_description():
     declare_ekf_config_file_cmd = DeclareLaunchArgument(
         name='ekf_config_file',
         default_value=default_ekf_config_path,
-        description='Full path to the EKF configuration YAML file'
+        description='Full path to the EKF configuration YAML file',
     )
 
     declare_use_sim_time_cmd = DeclareLaunchArgument(
         name='use_sim_time',
         default_value='true',
-        description='Use simulation (Gazebo) clock if true'
+        description='Use simulation (Gazebo) clock if true',
     )
 
     # Specify the actions
@@ -64,10 +64,7 @@ def generate_launch_description():
         executable='ekf_node',
         name='ekf_filter_node',
         output='screen',
-        parameters=[
-            ekf_config_file,
-            {'use_sim_time': use_sim_time}
-        ]
+        parameters=[ekf_config_file, {'use_sim_time': use_sim_time}],
     )
 
     # Create the launch description and populate
