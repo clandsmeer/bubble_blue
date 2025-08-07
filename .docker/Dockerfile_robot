@@ -138,7 +138,7 @@ USER $USERNAME
 
 # Actually build workspace
 RUN . "/opt/ros/${ROS_DISTRO}/setup.sh" \
-    && colcon build --parallel-workers 1 --packages-select mavros_msgs
+    && MAKEFLAGS="-j1 -l1.0" colcon build
     #&& MAKEFLAGS="-j1 -l1.0" colcon build
 
 RUN echo "source ${USER_WORKSPACE}/install/setup.bash" >> /home/$USERNAME/.bashrc \
