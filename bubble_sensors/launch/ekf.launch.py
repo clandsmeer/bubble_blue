@@ -10,7 +10,7 @@ and should read from the DVL, the
 import os
 
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument
+from launch.actions import DeclareLaunchArgument, TimerAction
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
@@ -29,12 +29,14 @@ def generate_launch_description():
     LaunchDescription: A complete launch description for the EKF node
 
     """
+    # add launch delay, hardcoded for now:
+    launch_delay = 0.0
 
     # Constants for paths to different files and folders
-    package_name = "bubble_sensors"
+    package_name = 'bubble_sensors'
 
     # Config file paths
-    ekf_config_file_path = "config/ekf.yaml"
+    ekf_config_file_path = 'config/ekf.yaml'
 
     # Set the path to different packages
     pkg_share = FindPackageShare(package=package_name).find(package_name)
@@ -43,12 +45,12 @@ def generate_launch_description():
     default_ekf_config_path = os.path.join(pkg_share, ekf_config_file_path)
 
     # Launch configuration variables
-    ekf_config_file = LaunchConfiguration("ekf_config_file")
-    use_sim_time = LaunchConfiguration("use_sim_time")
+    ekf_config_file = LaunchConfiguration('ekf_config_file')
+    use_sim_time = LaunchConfiguration('use_sim_time')
 
     # Declare the launch arguments
     declare_ekf_config_file_cmd = DeclareLaunchArgument(
-        name="ekf_config_file",
+        name='ekf_config_file',
         default_value=default_ekf_config_path,
         description='Full path to the EKF configuration YAML file',
     )
@@ -68,6 +70,12 @@ def generate_launch_description():
         parameters=[ekf_config_file, {'use_sim_time': use_sim_time}],
     )
 
+    # Add a timer to delay the EKF node launch by 5 seconds
+    delayed_ekf_node_cmd = TimerAction(
+        period=launch_delay,
+        actions=[start_ekf_node_cmd]
+    )
+
     # Create the launch description and populate
     ld = LaunchDescription()
 
@@ -76,6 +84,6 @@ def generate_launch_description():
     ld.add_action(declare_use_sim_time_cmd)
 
     # Add the actions
-    ld.add_action(start_ekf_node_cmd)
+    ld.add_action(delayed_ekf_node_cmd)
 
     return ld
