@@ -126,7 +126,8 @@ RUN apt-get -q update \
     && apt-get -q -y upgrade
 USER $USERNAME
 
-RUN vcs import src < src/blue/blue.repos
+RUN vcs import src < src/blue/blue.repos \
+    && cd src && git clone --recurse-submodules https://github.com/paagutie/dvl-a50.git && cd ../
 
 USER root
 RUN rosdep update \
