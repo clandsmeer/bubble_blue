@@ -20,7 +20,7 @@ find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(pluginlib REQUIRED)
-find_package(dvl_msgs)
+find_package(dvl_msgs REQUIRED)
 
 # uncomment the following section in order to fill in
 # further dependencies manually.

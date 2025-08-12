@@ -137,9 +137,11 @@ RUN rosdep update \
     && rm -rf /var/lib/apt/lists/*
 USER $USERNAME
 
-# Actually build workspace
-RUN . "/opt/ros/${ROS_DISTRO}/setup.sh" \
-    && MAKEFLAGS="-j1 -l1.0" colcon build
+# Actually build workspace (edited to use /bin/bash)
+RUN /bin/bash -c ". /opt/ros/${ROS_DISTRO}/setup.sh \
+    && colcon build --packages-select dvl_msgs dvl_a50 \
+    && . install/setup.bash \
+    && MAKEFLAGS='-j8 -l6.0' colcon build"
 
 RUN echo "source ${USER_WORKSPACE}/install/setup.bash" >> /home/$USERNAME/.bashrc \
     && echo "source /opt/ros/${ROS_DISTRO}/setup.bash" >> /home/$USERNAME/.bashrc \

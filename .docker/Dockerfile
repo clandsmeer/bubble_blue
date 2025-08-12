@@ -126,9 +126,11 @@ RUN sudo apt-get -q update \
     && sudo apt-get clean -y \
     && sudo rm -rf /var/lib/apt/lists/*
 
-# Actually build workspace
-RUN . "/opt/ros/${ROS_DISTRO}/setup.sh" \
-    && MAKEFLAGS="-j8 -l6.0" colcon build
+# Actually build workspace (edited to use /bin/bash)
+RUN /bin/bash -c ". /opt/ros/${ROS_DISTRO}/setup.sh \
+    && colcon build --packages-select dvl_msgs dvl_a50 \
+    && . install/setup.bash \
+    && MAKEFLAGS='-j8 -l6.0' colcon build"
 
 RUN echo "source ${USER_WORKSPACE}/install/setup.bash" >> /home/$USERNAME/.bashrc \
     && echo "source /opt/ros/${ROS_DISTRO}/setup.bash" >> /home/$USERNAME/.bashrc \
@@ -216,6 +218,8 @@ RUN sudo apt-get -q update \
 # Modify the 'colcon build' line to be 'MAKEFLAGS="-j1 -l1" colcon build'
 # This will limit the amount of RAM that colcon is allowed to use
 RUN . "/opt/ros/${ROS_DISTRO}/setup.sh" \
+    && colcon build --packages-select dvl_msgs dvl_a50 \
+    && source install/setup.bash \
     &&  MAKEFLAGS="-j8 -l6.0" colcon build
 
 # Setup the simulation environment variables
