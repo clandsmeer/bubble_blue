@@ -1,7 +1,4 @@
 launch:
-  - arg:
-      name: use_sim
-      default: "false"
 
   - arg:
       name: use_generic
@@ -39,7 +36,7 @@ launch:
         - name: output_topic
           value: "/sensors/generalized_sensor_test"
         - name: use_sim_time
-          value: $(var use_sim)
+          value: true
 
   - node:
       pkg: bubble_sensors
@@ -61,7 +58,7 @@ launch:
         - name: output_topic
           value: "/dvl/velocity"
         - name: use_sim_time
-          value: $(var use_sim)
+          value: true
 
   - node:
       pkg: bubble_sensors
@@ -85,32 +82,16 @@ launch:
         - name: output_topic
           value: "/vn100/imu"
         - name: use_sim_time
-          value: $(var use_sim)
+          value: true
 
-  # Define the transformations from the base link into the dvl and imu frames
-  # # NOTE: MAKE SURE ALL OF THESE FRAMES ARE THE SAME AS THE FRAMES IN THE DESCRIPTION FILE(sensors.xacro)!!!!
-  # - node:
-  #     pkg: tf2_ros
-  #     exec: static_transform_publisher
-  #     name: base_link_to_dvl
-  #     args: --x 0.0 --y 0.0 --z -0.2 --roll 0.0 --pitch 3.14159 --yaw 0.0 --frame-id base_link --child-frame-id dvl
-
-  # - node:
-  #     pkg: tf2_ros
-  #     exec: static_transform_publisher
-  #     name: base_link_to_vn100
-  #     args: --x 0.0 --y 0.0 --z 0.1 --roll 0.0 --pitch 0.0 --yaw 0.0 --frame-id base_link --child-frame-id vn100
-
-  #launch the roz_gz_bridge to convert the imu gz msg to ros
   - node:
       pkg: ros_gz_bridge
       exec: parameter_bridge
-      if: $(var use_sim)
       args: /vn100/gz_data@sensor_msgs/msg/Imu[gz.msgs.IMU
       param:
         - name: use_sim_time
-          value: $(var use_sim)
+          value: true
 
   - include:
       if: $(var use_ekf)
-      file: $(find-pkg-share bubble_sensors)/launch/ekf.launch.py
+      file: $(find-pkg-share bubble_sensors)/launch/sim_ekf.launch.py

@@ -36,7 +36,7 @@ def generate_launch_description():
     package_name = 'bubble_sensors'
 
     # Config file paths
-    ekf_config_file_path = 'config/ekf.yaml'
+    ekf_config_file_path = 'config/sim_ekf.yaml'
 
     # Set the path to different packages
     pkg_share = FindPackageShare(package=package_name).find(package_name)
