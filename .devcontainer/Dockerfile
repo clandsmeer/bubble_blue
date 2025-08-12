@@ -111,7 +111,7 @@ RUN sudo apt-get -q update \
 # Manually install MAVROS from source in the ws_blue/ workspace
 WORKDIR $USER_WORKSPACE/src/
 ARG MAVROS_RELEASE=ros2
-ARG MAVLINK_RELEASE=release/rolling/mavlink
+ARG MAVLINK_RELEASE=release/jazzy/mavlink
 RUN git clone --depth 1 -b ${MAVROS_RELEASE} https://github.com/mavlink/mavros.git
 RUN git clone --depth 1 --recursive -b ${MAVLINK_RELEASE} https://github.com/ros2-gbp/mavlink-gbp-release.git mavlink
 
@@ -119,6 +119,7 @@ WORKDIR $USER_WORKSPACE
 RUN sudo apt-get -q update \
     && sudo apt-get -q -y upgrade \
     && vcs import src < src/blue/blue.repos \
+    && cd src && git clone --recurse-submodules https://github.com/paagutie/dvl-a50.git && cd ../\
     && rosdep update \
     && rosdep install -y --from-paths src --ignore-src --rosdistro ${ROS_DISTRO} \
     && sudo apt-get autoremove -y \
@@ -127,7 +128,7 @@ RUN sudo apt-get -q update \
 
 # Actually build workspace
 RUN . "/opt/ros/${ROS_DISTRO}/setup.sh" \
-    && colcon build --parallel-workers 2
+    && MAKEFLAGS="-j8 -l6.0" colcon build
 
 RUN echo "source ${USER_WORKSPACE}/install/setup.bash" >> /home/$USERNAME/.bashrc \
     && echo "source /opt/ros/${ROS_DISTRO}/setup.bash" >> /home/$USERNAME/.bashrc \
@@ -215,7 +216,7 @@ RUN sudo apt-get -q update \
 # Modify the 'colcon build' line to be 'MAKEFLAGS="-j1 -l1" colcon build'
 # This will limit the amount of RAM that colcon is allowed to use
 RUN . "/opt/ros/${ROS_DISTRO}/setup.sh" \
-    && MAKEFLAGS="-j1 -l1" colcon build
+    &&  MAKEFLAGS="-j8 -l6.0" colcon build
 
 # Setup the simulation environment variables
 RUN  <<EOT cat >> /home/$USERNAME/.bashrc
