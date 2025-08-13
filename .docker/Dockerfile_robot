@@ -108,7 +108,7 @@ RUN apt-get -q update \
     libgstreamer1.0-dev \
     gstreamer1.0-gl \
     libgstreamer-plugins-base1.0-dev \
-    && apt-get install vim \ 
+    && apt-get install vim -y\ 
     && apt-get autoremove -y \
     && apt-get clean -y \
     && rm -rf /var/lib/apt/lists/* 
