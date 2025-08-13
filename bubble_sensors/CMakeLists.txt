@@ -70,6 +70,12 @@ install(DIRECTORY include/
 install(FILES mavros_plugins.xml
   DESTINATION share/${PROJECT_NAME})
 
+#install the dvl enabler
+install(PROGRAMS
+  src/dvl_enabler.py
+  DESTINATION lib/${PROJECT_NAME}
+)
+
 # make sure the launch directory can be accessed so the overall bringup file can launch sensors
 install(
   DIRECTORY launch config

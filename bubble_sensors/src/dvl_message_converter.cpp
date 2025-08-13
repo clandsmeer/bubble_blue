@@ -19,10 +19,10 @@ public:
   {
 
     // Define the incoming and outgoing topics
-    this->declare_parameter("input_topic", "dvl/data");
+    this->declare_parameter("input_topic", "/dvl/data");
     this->get_parameter("input_topic", input_topic_name_);
 
-    this->declare_parameter("output_topic", "/dvl/data_twist");
+    this->declare_parameter("output_topic", "/dvl/twist_data");
     this->get_parameter("output_topic", output_topic_name_);
 
     dvl_subscription = this->create_subscription<dvl_msgs::msg::DVL>(
@@ -42,7 +42,8 @@ public:
 private:
   void conversion_callback(const dvl_msgs::msg::DVL &msg)
   {
-    // create the variable that will store the new noisy message
+    try { 
+      // create the variable that will store the new noisy message
     geometry_msgs::msg::TwistWithCovarianceStamped converted_msg;
 
     // transfer the header
@@ -57,6 +58,10 @@ private:
     converted_msg.twist.covariance[14] = msg.covariance[8];
     
     converted_publisher->publish(converted_msg);
+    } catch (const std::exception& e){ 
+      RCLCPP_ERROR(this->get_logger(), "Exception somewhre in the conversion process: %s", e.what());
+    }
+    
 
   }
 

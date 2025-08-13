@@ -36,6 +36,15 @@ launch:
       param:
         - name: ip_address
           value: 192.168.194.95
+          
+  - node: 
+      pkg: bubble_sensors
+      if: $(var use_dvl)
+      exec: dvl_enabler.py
+      name: dvl_configurator
+      param: 
+        - name: timer_wait
+          value: 5.0
 
   - node: 
       pkg: bubble_sensors
@@ -43,9 +52,9 @@ launch:
       exec: dvl_message_converter
       param: 
         - name: input_topic
-          value: "dvl/data"
+          value: "/dvl/data"
         - name: output_topic
-          value: "/dvl/data_twist"
+          value: "/dvl/twist_data"
 
   # Define the transformations from the base link into the dvl and imu frames
   - node:
