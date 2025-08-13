@@ -25,9 +25,17 @@ public:
     this->declare_parameter("output_topic", "/dvl/twist_data");
     this->get_parameter("output_topic", output_topic_name_);
 
+    // Create QoS profile to match the DVL sensor
+    rmw_qos_profile_t qos_profile = rmw_qos_profile_sensor_data;
+    auto qos = rclcpp::QoS(
+            rclcpp::QoSInitialization(
+            qos_profile.history,
+            qos_profile.depth),
+            qos_profile);
+
     dvl_subscription = this->create_subscription<dvl_msgs::msg::DVL>(
         input_topic_name_,
-        10,
+        qos,  // Use matching QoS instead of "10"
         std::bind(&ConvertDVL::conversion_callback, this, std::placeholders::_1));
 
     converted_publisher = this->create_publisher<geometry_msgs::msg::TwistWithCovarianceStamped>(
