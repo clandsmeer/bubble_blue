@@ -14,6 +14,7 @@ launch:
 
   - node:
       pkg: vectornav
+      if: $(var use_imu)
       exec: vectornav
       output: screen
       param:
@@ -21,6 +22,7 @@ launch:
   
   - node:
       pkg: vectornav
+      if: $(var use_imu)
       exec: vn_sensor_msgs
       output: screen
       param:
