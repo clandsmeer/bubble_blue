@@ -17,14 +17,14 @@ launch:
       exec: vectornav
       output: screen
       param:
-        - $(find-pkg-share bubble_sensors)/config/vectornav.yaml
+        - from: $(find-pkg-share bubble_sensors)/config/vectornav.yaml
   
   - node:
       pkg: vectornav
       exec: vn_sensor_msgs
       output: screen
       param:
-        - $(find-pkg-share bubble_sensors)/config/vectornav.yaml
+        - from: $(find-pkg-share bubble_sensors)/config/vectornav.yaml
 
   - node:
       pkg: dvl_a50

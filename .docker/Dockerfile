@@ -217,10 +217,13 @@ RUN sudo apt-get -q update \
 # For users that build this on a laptop or system with limited RAM,
 # Modify the 'colcon build' line to be 'MAKEFLAGS="-j1 -l1" colcon build'
 # This will limit the amount of RAM that colcon is allowed to use
-RUN . "/opt/ros/${ROS_DISTRO}/setup.sh" \
+# in addition, use the /bin/bash -c to ensure that the environment can
+# change locally to allow the bubble_sensors package to register the
+# dvl_msgs package
+RUN /bin/bash -c ". /opt/ros/${ROS_DISTRO}/setup.sh \
     && colcon build --packages-select dvl_msgs dvl_a50 \
-    && source install/setup.bash \
-    &&  MAKEFLAGS="-j8 -l6.0" colcon build
+    && . install/setup.bash \
+    && MAKEFLAGS='-j8 -l6.0' colcon build"
 
 # Setup the simulation environment variables
 RUN  <<EOT cat >> /home/$USERNAME/.bashrc
