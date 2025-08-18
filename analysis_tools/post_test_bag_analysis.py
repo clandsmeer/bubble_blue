@@ -11,7 +11,7 @@ class Bag_Analyzer():
     def __init__(self, path, topic_dict):
         self.path = path
         self.topic_dict = topic_dict
-        self.topic_list = topic_dict.keys()
+        self.topic_list = list(topic_dict.keys())
         self.data = self.setup_data_fields()
     
     def read_rosbag2_mcap(self):
@@ -235,12 +235,16 @@ class Bag_Analyzer():
 
         for i, var in enumerate(ang_vel_variables):
             for topic in self.topic_list:
-                if self.topic_dict[topic]["plot"][i+6]: 
-                    axes[i].plot(
-                        self.data[topic]['timestamps'],
-                        self.data[topic][var],
-                        label=f'{topic}',
-                    )
+                if self.topic_dict[topic]["plot"][i+9]: 
+                    try: 
+                        axes[i].plot(
+                            self.data[topic]['timestamps'],
+                            self.data[topic][var],
+                            label=f'{topic}',
+                        )
+                    except Exception as e: 
+                        print(f"message type {topic} had issue in reading: {e}")
+                        break 
             axes[i].set_xlabel('Time [s]')
             axes[i].set_ylabel(f'{var} [rad/s]')
             axes[i].set_title(f'Angular Velocity: {var}')
@@ -254,7 +258,7 @@ class Bag_Analyzer():
 
         for i, var in enumerate(lin_vel_variables):
             for topic in self.topic_list:
-                if self.topic_dict[topic]["plot"][i+9]: 
+                if self.topic_dict[topic]["plot"][i+6]: 
                     axes[i].plot(
                         self.data[topic]['timestamps'],
                         self.data[topic][var],
@@ -319,7 +323,7 @@ if __name__ == '__main__':
                       True, True, True,
                       False, False, False]},
 
-        "/dvl/velocity": 
+        "/dvl/twist_data": 
             {"type": "geometry_msgs::msg::TwistWithCovarianceStamped",
              "plot": [False, False, False,
                       False, False, False, 

@@ -73,6 +73,7 @@ install(FILES mavros_plugins.xml
 #install the dvl enabler
 install(PROGRAMS
   src/dvl_enabler.py
+  src/imu_calibrator.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
