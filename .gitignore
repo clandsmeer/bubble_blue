@@ -21,4 +21,5 @@ logs/
 .docker/docker-bake.override.hcl
 
 #ignore all rosbag2 files
-rosbag2* 
+rosbag2*
+ROS2BAG*

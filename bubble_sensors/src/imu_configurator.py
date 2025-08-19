@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-File: imu_calibrator v1.0
+File: imu_configurator.py v1.1
 Author: Henry Adam
-Date: Aug 18, 2025
+Date: Aug 19, 2025
 
 The purpose of this file is to complete the automated calibration of the vectornav vn100 IMU. 
 In the file, the raw output is 
