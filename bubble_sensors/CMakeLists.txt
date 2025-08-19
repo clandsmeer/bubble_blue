@@ -21,6 +21,7 @@ find_package(tf2_ros REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(pluginlib REQUIRED)
 find_package(dvl_msgs REQUIRED)
+find_package(rosidl_default_generators REQUIRED)
 
 # uncomment the following section in order to fill in
 # further dependencies manually.
@@ -77,6 +78,11 @@ install(PROGRAMS
   DESTINATION lib/${PROJECT_NAME}
 )
 
+# add the custom service for IMU Configuration 
+rosidl_generate_interfaces(${PROJECT_NAME}
+  "srv/ConfigureVN100.srv"
+  DEPENDENCIES std_msgs
+)
 # make sure the launch directory can be accessed so the overall bringup file can launch sensors
 install(
   DIRECTORY launch config
