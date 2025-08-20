@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 """
-File: imu_configurator.py v1.1
+File: imu_calibrator v1.1
 Author: Henry Adam
 Date: Aug 19, 2025
 
 The purpose of this file is to complete the automated calibration of the vectornav vn100 IMU. 
-In the file, the raw output is 
 """
 
 import rclpy
@@ -29,11 +28,11 @@ def full_vn_message(payload: str) -> bytes:
 
 class VN100Configurator(Node):
     def __init__(self):
-        super().__init__('imu_calibrator')
+        super().__init__('imu_configurator')
 
         # declare the parameters for the ports and baudrate
-        self.declare_parameter("imu_port", '/dev/ttyAMA5')
-        self.declare_parameter('kf_port', '/dev/ttyAMA4')
+        self.declare_parameter("imu_port", '/dev/ttyAMA4')
+        self.declare_parameter('kf_port', '/dev/ttyAMA5')
         self.declare_parameter('baudrate', 115200)
         self.declare_parameter('print_output', False)
         self.declare_parameter('read_time', 10.0)
@@ -46,15 +45,19 @@ class VN100Configurator(Node):
         self.read_time = self.get_parameter("read_time").get_parameter_value().double_value
         # some configuration for the ports
         try: 
-            self.ser_imu = serial.Serial(self.imu_port, self.baudrate, timeout=1)
-            self.ser_kf  = serial.Serial(self.kf_port,  self.baudrate, timeout=1)
+            self.ser_imu = serial.Serial(self.imu_port, self.baudrate, timeout=1, rtscts=True)
+            self.ser_kf  = serial.Serial(self.kf_port,  self.baudrate, timeout=1, rtscts=True)
+            print(self.ser_imu)
+            print(self.ser_kf)
         except Exception as e: 
             self.get_logger().error(f"ERROR OPENING SERIAL PORTS: {e}")
 
         # Create service: when called, performs calibration and config
         self.srv = self.create_service(ConfigureVN100, 'configure_vn100', self.handle_configure)
 
-        self.get_logger().info("VN100 Configurator ready. Call /configure_vn100 service.")
+        self.get_logger().info("VN100 Command Node is Running. Use the /ConfigureVN100 service call to send a message to a particular port")
+        self.get_logger().info(f"The imu port is {self.imu_port}, and the kf port is {self.kf_port}")
+        self.get_logger().info("Example Command: ros2 service call /configure_vn100 bubble_sensors/srv/ConfigureVN100 \"{port:\\\"imu\\\", msg:\\\"VNWRG,06,1,1\\\"}\"")
 
     def handle_configure(self, request, response):
         # parse the request 
@@ -63,14 +66,14 @@ class VN100Configurator(Node):
             if port == "imu": 
                 self.ser_imu.write(full_vn_message(request.msg))
             if port == "kf":
-                self.ser_imu.write(full_vn_message(request.msg))
+                self.ser_kf.write(full_vn_message(request.msg))
         except Exception as e: 
             self.get_logger().error(f"Error sending the request! Error: {e}") 
             response.success = False
             response.message = f"Error in sending the request: {e}"
             return response
 
-        if self.print_outputs:
+        if self.print_output:
             # now read all of the messages coming in from the port
             self.get_logger().info("Reading Logs for {self.read_time} seconds")
             timeout = self.read_time + time.time()
