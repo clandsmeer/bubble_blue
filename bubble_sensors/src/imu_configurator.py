@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """
-File: imu_calibrator v1.1
+File: imu_calibrator v1.0
 Author: Henry Adam
-Date: Aug 19, 2025
+Date: Aug 18, 2025
 
 The purpose of this file is to complete the automated calibration of the vectornav vn100 IMU. 
+In the file, the raw output is 
 """
 
 import rclpy
@@ -57,7 +58,7 @@ class VN100Configurator(Node):
 
         self.get_logger().info("VN100 Command Node is Running. Use the /ConfigureVN100 service call to send a message to a particular port")
         self.get_logger().info(f"The imu port is {self.imu_port}, and the kf port is {self.kf_port}")
-        self.get_logger().info("Example Command: ros2 service call /configure_vn100 bubble_sensors/srv/ConfigureVN100 \"{port:\\\"imu\\\", msg:\\\"VNWRG,06,1,1\\\"}\"")
+        self.get_logger().info("Example Command: ros2 service call /configure_vn100 bubble_sensors/srv/ConfigureVN100 \"{port:'imu', msg:'VNWRG,06,1,1'} ")
 
     def handle_configure(self, request, response):
         # parse the request 

@@ -11,29 +11,27 @@ on the BlueRov2. It is called via the /initialize service of type std_srvs/srv/T
 import rclpy
 from rclpy.node import Node
 from bubble_sensors.srv import ConfigureVN100
-from sensor_msgs.msg import NavSatFix
-from geometry_msgs.msg import PoseStamped
+from geographic_msgs.msg import GeoPointStamped
+from geometry_msgs.msg import PoseWithCovarianceStamped
 from std_srvs.srv import Trigger
 
 class Initializer(Node):
     def __init__(self):
         super().__init__('initializer')
-        
-        # Call the ConfigureVN100 service
+
+        # Create the client for the IMU Configuration service
         self.cli = self.create_client(ConfigureVN100, '/configure_vn100')
         while not self.cli.wait_for_service(timeout_sec=5.0):
             self.get_logger().info('Waiting for /configure_vn100 service...')
-
+        
         # Publishers for global and local positions
-        self.global_pub = self.create_publisher(NavSatFix, '/mavros/global_position/global_position', 10)
-        self.local_pub = self.create_publisher(PoseStamped, '/mavros/local_position/pose', 10)
-
-        # Publish reference positions after a short delay
-        self.timer = self.create_timer(3.0, self.publish_reference_positions)
+        self.global_pub = self.create_publisher(GeoPointStamped, '/mavros/global_position/set_gp_origin', 10)
+        self.local_pub = self.create_publisher(PoseWithCovarianceStamped, '/mavros/local_position/pose_cov', 10) 
 
         #create the triggerred service that initailizes the system. 
         self.init_service = self.create_service(Trigger, "initialize", self.init_service_callback)
-    
+        self.get_logger().info("Initializer Started and /configure_vn100 service grabbed. Ready for initialization")
+        
     def init_service_callback(self, request, response):
         #the purpose of this service is to initialize the imu, dvl, and ardusub ek3 output
 
@@ -79,20 +77,21 @@ class Initializer(Node):
 
     def publish_reference_positions(self):
         # Reference global position (example values)
-        global_msg = NavSatFix()
-        global_msg.latitude = 37.4275
-        global_msg.longitude = -122.1697
-        global_msg.altitude = 30.0
+        global_msg = GeoPointStamped()
+        global_msg.header.stamp = self.get_clock().now().to_msg()
+        global_msg.position.latitude = 47.3769
+        global_msg.position.longitude = 8.5417
+        global_msg.position.altitude = 0.0
         self.global_pub.publish(global_msg)
         self.get_logger().info('Published reference global position.')
 
-        # Reference local position (example values)
-        local_msg = PoseStamped()
+        # Set reference local position to zero
+        local_msg = PoseWithCovarianceStamped()
         local_msg.header.frame_id = "map"
-        local_msg.pose.position.x = 0.0
-        local_msg.pose.position.y = 0.0
-        local_msg.pose.position.z = 0.0
-        local_msg.pose.orientation.w = 1.0
+        local_msg.pose.pose.position.x = 10.0
+        local_msg.pose.pose.position.y = 10.0
+        local_msg.pose.pose.position.z = 10.0
+        local_msg.pose.pose.orientation.w = 1.0
         self.local_pub.publish(local_msg)
         self.get_logger().info('Published reference local position.')
 
