@@ -88,6 +88,7 @@ class Initializer(Node):
         # Set reference local position to zero
         local_msg = PoseWithCovarianceStamped()
         local_msg.header.frame_id = "map"
+        local_msg.header.stamp = self.get_clock().now().to_msg()
         local_msg.pose.pose.position.x = 10.0
         local_msg.pose.pose.position.y = 10.0
         local_msg.pose.pose.position.z = 10.0

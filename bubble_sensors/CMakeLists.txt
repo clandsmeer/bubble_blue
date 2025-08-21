@@ -75,7 +75,7 @@ install(FILES mavros_plugins.xml
 install(PROGRAMS
   src/dvl_enabler.py
   src/initializer.py
-  src/imu_configurator.py
+  src/vectornav_manager.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
