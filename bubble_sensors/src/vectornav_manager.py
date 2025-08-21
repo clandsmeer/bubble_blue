@@ -53,8 +53,6 @@ class VN100Manager(Node):
         try: 
             self.ser_imu = serial.Serial(self.imu_port, self.baudrate, timeout=1, rtscts=True)
             self.ser_kf  = serial.Serial(self.kf_port,  self.baudrate, timeout=1, rtscts=True)
-            print(self.ser_imu)
-            print(self.ser_kf)
         except Exception as e: 
             self.get_logger().error(f"ERROR OPENING SERIAL PORTS: {e}")
 
@@ -66,8 +64,8 @@ class VN100Manager(Node):
         self.get_logger().info("Example Command: ros2 service call /configure_vn100 bubble_sensors/srv/ConfigureVN100 \"{port:'imu', msg:'VNWRG,06,1,1'} ")
 
         #Create the publishers for the ros nodes
-        self.imu_pub = self.create_publisher(Imu, "/vectornav_manager/ImuData", 10)
-        self.orient_pub = self.create_publisher(PoseWithCovarianceStamped, "/vectornav_manager/kf_orient", 10)
+        self.imu_pub = self.create_publisher(Imu, "/vectornav/Imu_body", 10)
+        self.orient_pub = self.create_publisher(PoseWithCovarianceStamped, "/vectornav/filterred_orientation", 10)
 
         self.reading = False
         self.port1_thread = None
@@ -81,23 +79,23 @@ class VN100Manager(Node):
                 if not msg:
                     #empty messages, skip this
                     continue
-                parsed_msg = msg.split(",")
+                parsed_msg = msg.split("*")[0].split(",")
                 msg_type = parsed_msg[0]
                 imu_message = Imu()
                 # TODO: Add message type handling
                 # For now, assuming port 1 has gravity-compensated accel data
                 if msg_type == "$VNYBA":
                     yaw = float(parsed_msg[1])
-                    cy = np.cos(yaw * 0.5)
-                    sy = np.sin(yaw * 0.5)
+                    cy = np.cos(yaw * np.pi/180 * 0.5)
+                    sy = np.sin(yaw * np.pi/180 * 0.5)
                     
                     pitch = float(parsed_msg[2])
-                    cp = np.cos(pitch * 0.5)
-                    sp = np.sin(pitch * 0.5)
+                    cp = np.cos(pitch * np.pi/180 * 0.5)
+                    sp = np.sin(pitch * np.pi/180 * 0.5)
 
                     roll = float(parsed_msg[3])
-                    cr = np.cos(roll * 0.5)
-                    sr = np.sin(roll * 0.5)
+                    cr = np.cos(roll * np.pi/180 * 0.5)
+                    sr = np.sin(roll * np.pi/180 * 0.5)
 
                     #Orientation and Associated Covariance
                     imu_message.orientation.x = sr * cp * cy - cr * sp * sy
@@ -136,7 +134,7 @@ class VN100Manager(Node):
                     self.get_logger.error(f"Error code {parsed_msg[1]} in vn100 node")
                 else: 
                     #for now, there is no handling of other message types, so just throw an error here:
-                    self.get_logger().error("UNHANDLED MESSAGE TYPE IN ")
+                    self.get_logger().error("UNHANDLED MESSAGE TYPE IN PORT 1")
             except Exception as e: 
                     self.get_logger().error(f"Error in Port 1: {e}")
         self.get_logger().info("Serial Port 1 Closing")
@@ -145,21 +143,21 @@ class VN100Manager(Node):
     def port2_reader(self): 
         while self.reading: 
             try:
-                msg = self.ser_imu.readline().decode('ascii', errors='ignore').strip()  
+                msg = self.ser_kf.readline().decode('ascii', errors='ignore').strip()  
                 if not msg:
                     #empty messages
                     continue
-                parsed_msg = msg.split(",")
+                parsed_msg = msg.split("*")[0].split(",")
                 msg_type = parsed_msg[0]
                 ekf_message = PoseWithCovarianceStamped()
                 # TODO: Add message type handling
                 # For now, assuming port 2 has Kalman-Filterred Data
                 if msg_type == "$VNSTV":
                     
-                    ekf_message.pose.pose.orientation.x = parsed_msg[1]
-                    ekf_message.pose.pose.orientation.y = parsed_msg[2]
-                    ekf_message.pose.pose.orientation.z = parsed_msg[3]
-                    ekf_message.pose.pose.orientation.w = parsed_msg[4]
+                    ekf_message.pose.pose.orientation.x = float(parsed_msg[1])
+                    ekf_message.pose.pose.orientation.y = float(parsed_msg[2])
+                    ekf_message.pose.pose.orientation.z = float(parsed_msg[3])
+                    ekf_message.pose.pose.orientation.w = float(parsed_msg[4])
                     #for pose.pose.position, indicate that they are not to be included
                     ekf_message.pose.covariance[0] = -1
                     ekf_message.pose.covariance[7] = -1
@@ -182,7 +180,7 @@ class VN100Manager(Node):
                     self.get_logger.error(f"Error code {parsed_msg[1]} in vn100 node")
                 else: 
                     #for now, there is no handling of other message types, so just throw an error here:
-                    self.get_logger().error("UNHANDLED MESSAGE TYPE IN ")
+                    self.get_logger().error("UNHANDLED MESSAGE TYPE IN PORT 2")
             except Exception as e: 
                     self.get_logger().error(f"Error in Port 2: {e}")
         self.get_logger().info("Serial Port 2 Closing")
@@ -218,6 +216,7 @@ class VN100Manager(Node):
                 self.get_logger().warn("KeyboardInterrupt on listening step")
 
         # After configuring port outputs, start the reading services for both ports
+        self.start_reading_threads()
         
         response.success = True
         response.message = f"VN100 message sent:d {str(request)}."
@@ -253,21 +252,18 @@ class VN100Manager(Node):
 
 def main(args=None):
     rclpy.init(args=args)
+    
+    executor = rclpy.executors.SingleThreadedExecutor()
     node = VN100Manager()
-    
-    def signal_handler(sig, frame):
-        node.get_logger().info("Shutting down...")
-        node.stop_reading_threads()
-        node.destroy_node()
-        rclpy.shutdown()
-        sys.exit(0)
-    
-    signal.signal(signal.SIGINT, signal_handler)
+    executor.add_node(node)
     
     try:
-        rclpy.spin(node)
+        executor.spin()
+    except KeyboardInterrupt:
+        node.get_logger().info("Shutting down gracefully...")
     finally:
         node.stop_reading_threads()
+        executor.remove_node(node)
         node.destroy_node()
         rclpy.shutdown()
 

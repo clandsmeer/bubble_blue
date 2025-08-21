@@ -6,7 +6,7 @@ launch:
 
   - arg:
       name: use_imu
-      default: "false"
+      default: "true"
 
   - arg:
       name: use_ekf
@@ -16,22 +16,29 @@ launch:
       name: dvl_timer_wait
       default: '10.0'
 
-  - node:
-      pkg: vectornav
-      if: $(var use_imu)
-      exec: vectornav
-      output: screen
-      param:
-        - from: $(find-pkg-share bubble_sensors)/config/vectornav.yaml
-  
-  - node:
-      pkg: vectornav
-      if: $(var use_imu)
-      exec: vn_sensor_msgs
-      output: screen
-      param:
-        - from: $(find-pkg-share bubble_sensors)/config/vectornav.yaml
+ #REMOVING THE VECTORNAV NODE FOR TESTING THE NEW VN100 Manager
 
+  #- node:vectornav
+      #if: $(var use_imu)
+      #exec: vectornav
+      #output: screen
+      #param:
+      #  - from: $(find-pkg-share bubble_sensors)/config/vectornav.yaml
+  
+  #- node:
+      #pkg: vectornav  
+      #if: $(var use_imu)
+      #exec: vn_sensor_msgs
+      #output: screen
+      #param:
+      #- from: $(find-pkg-share bubble_sensors)/config/vectornav.yaml
+  
+  - node: 
+      pkg: bubble_sensors
+      if: $(var use_imu)
+      exec: vectornav_manager.py
+      output: screen
+        
   - node:
       pkg: dvl_a50
       if: $(var use_dvl)
@@ -60,6 +67,13 @@ launch:
         - name: output_topic
           value: "/dvl/twist_data"
 
+  #Initializer Node:
+        
+  - node: 
+      pkg: bubble_sensors
+      exec: initializer.py
+      output: screen
+  
   # Define the transformations from the base link into the dvl and imu frames
   - node:
       pkg: tf2_ros
