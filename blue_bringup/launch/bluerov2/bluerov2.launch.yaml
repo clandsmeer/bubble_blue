@@ -23,7 +23,7 @@ launch:
 
   - arg:
       name: use_imu
-      default: "false"
+      default: "true"
 
   - arg:
       name: use_ekf

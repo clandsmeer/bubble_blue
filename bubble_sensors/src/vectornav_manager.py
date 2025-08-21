@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-File: imu_calibrator v1.0
+File: vectornav_manager v2.0
 Author: Henry Adam
 Date: Aug 18, 2025
 
@@ -124,7 +124,7 @@ class VN100Manager(Node):
 
                     # TODO: Make the Covariance a ros2 parameter
                     #create the header for the message
-                    imu_message.header.frame_id = "vectornav"
+                    imu_message.header.frame_id = "base_link_frd"
                     imu_message.header.stamp = self.get_clock().now().to_msg()
 
                     #actually publish the message
@@ -170,7 +170,7 @@ class VN100Manager(Node):
                     ekf_message.pose.covariance[35] = 0.01
 
                     #create the header for the message
-                    ekf_message.header.frame_id = "vectornav"
+                    ekf_message.header.frame_id = "map_ned" #publishes the 
                     ekf_message.header.stamp = self.get_clock().now().to_msg()
 
                     #actually publish the message
@@ -223,7 +223,7 @@ class VN100Manager(Node):
         return response
     
     def start_reading_threads(self):
-        #Bringup both threads
+        #Bring up both threads
         with self.thread_lock:
             if not self.reading:
                 self.reading = True
@@ -260,7 +260,7 @@ def main(args=None):
     try:
         executor.spin()
     except KeyboardInterrupt:
-        node.get_logger().info("Shutting down gracefully...")
+        node.get_logger().info("Shutting down gracefully...(hopefully)")
     finally:
         node.stop_reading_threads()
         executor.remove_node(node)

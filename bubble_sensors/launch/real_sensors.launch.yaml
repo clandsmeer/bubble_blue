@@ -17,14 +17,12 @@ launch:
       default: '10.0'
 
  #REMOVING THE VECTORNAV NODE FOR TESTING THE NEW VN100 Manager
-
   #- node:vectornav
       #if: $(var use_imu)
       #exec: vectornav
       #output: screen
       #param:
       #  - from: $(find-pkg-share bubble_sensors)/config/vectornav.yaml
-  
   #- node:
       #pkg: vectornav  
       #if: $(var use_imu)
@@ -81,11 +79,11 @@ launch:
       name: base_link_to_dvl
       args: --x -0.15 --y 0.0 --z -0.12 --roll 3.1416 --pitch 0.0 --yaw 3.1416 --frame-id base_link --child-frame-id dvl_a50
 
-  - node:
-      pkg: tf2_ros
-      exec: static_transform_publisher
-      name: base_link_to_vn100
-      args: --x 0.0 --y 0.0 --z 0.05 --roll 1.5708 --pitch 0.0 --yaw 0.0 --frame-id base_link --child-frame-id vectornav 
+  # - node:
+  #     pkg: tf2_ros
+  #     exec: static_transform_publisher
+  #     name: base_link_to_vn100
+  #     args: --x 0.0 --y 0.0 --z 0.05 --roll 1.5708 --pitch 0.0 --yaw 0.0 --frame-id base_link --child-frame-id vectornav 
 
   - include:
       if: $(var use_ekf)

@@ -63,7 +63,7 @@ class Initializer(Node):
         #finally, send the correct orientation for the imu wrt to the body frame
         req_orient = ConfigureVN100.Request()
         req_orient.port = "imu"
-        req_orient.msg = "VNWRG,26,1,0,0,0,0,1,0,-1,0"
+        req_orient.msg = "VNWRG,26,1,0,0,0,0,-1,0,1,0"
         response_orient = self.cli.call_async(req_orient)
         self.get_logger().info(f'Sent configuration command for sensor orientation. Response: {response_orient.result()}')
 

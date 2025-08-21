@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import rclpy
 import rclpy.serialization
-from geometry_msgs.msg import TwistWithCovarianceStamped
+from geometry_msgs.msg import TwistWithCovarianceStamped, PoseWithCovarianceStamped
 from nav_msgs.msg import Odometry
 from rosbag2_py import ConverterOptions, SequentialReader, StorageFilter, StorageOptions
 from scipy.spatial.transform import Rotation as R
@@ -185,6 +185,34 @@ class Bag_Analyzer():
                     if self.topic_dict[topic]["plot"][11]: 
                         omega_z = msg.twist.twist.angular.z
                         self.data[topic]['omega_z'].append(omega_z)
+                elif self.topic_dict[topic]["type"] == 'geometry_msgs::msg::PoseWithCovarianceStamped': 
+                    try:
+                        msg = rclpy.serialization.deserialize_message(topic_data, PoseWithCovarianceStamped)
+                    except Exception as e: 
+                        print(f"ERROR WITH DESERIALIZATION OF {topic}! {e}")
+                    self.data[topic]['timestamps'].append(timestamp_seconds)
+                    if self.topic_dict[topic]["plot"][0]:
+                        self.data[topic]["x"].append(msg.pose.pose.position.x)
+                    if self.topic_dict[topic]["plot"][1]:
+                        self.data[topic]["y"].append(msg.pose.pose.position.y)
+                    if self.topic_dict[topic]["plot"][2]:
+                        self.data[topic]["z"].append(msg.pose.pose.position.z)
+                    qx = msg.pose.pose.orientation.x
+                    #self.data[topic]['qx'].append(qx)
+                    qy = msg.pose.pose.orientation.y
+                    #self.data[topic]['qy'].append(qy)
+                    qz = msg.pose.pose.orientation.z
+                    #self.data[topic]['qz'].append(qz)
+                    qw = msg.pose.pose.orientation.w
+                    #self.data[topic]['qw'].append(qw)
+                    eulers = R.from_quat([qx, qy, qz, qw]).as_euler('xyz', degrees=True)
+                    if self.topic_dict[topic]["plot"][3]: 
+                        self.data[topic]['roll'].append(eulers[0])
+                    if self.topic_dict[topic]["plot"][4]: 
+                        self.data[topic]['pitch'].append(eulers[1])
+                    if self.topic_dict[topic]["plot"][5]: 
+                        self.data[topic]['yaw'].append(eulers[2])
+                    
                 else: 
                     print("WARNING: TOPIC TYPE NOT SUPPORTED CURRENTLY. MAY NEED TO ADD NEW TYPE.")
 
@@ -331,13 +359,29 @@ if __name__ == '__main__':
                       False, False, False,
                       False, False, False]},
 
-        "/vectornav/imu": 
+        "/vectornav/Imu_body": 
             {"type": "sensor_msgs::msg::Imu",
              "plot": [False, False, False,
                       True, True, True,
                       False, False, False, 
                       True, True, True,
-                      True, True, True]}
+                      True, True, True]},
+
+        "/vectornav/filterred_orientation": 
+            {"type": "geometry_msgs::msg::PoseWithCovarianceStamped",
+             "plot": [False, False, False,
+                      True, True, True,
+                      False, False, False, 
+                      False, False, False,
+                      False, False, False]},
+        
+        "/mavros/vision_pose/pose_cov": 
+            {"type": "geometry_msgs::msg::PoseWithCovarianceStamped",
+             "plot": [True, True, True,
+                      True, True, True,
+                      False, False, False, 
+                      False, False, False,
+                      False, False, False]}
         }
         
     #initialize analyzer and plot data
