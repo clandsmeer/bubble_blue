@@ -1,11 +1,13 @@
 import matplotlib.pyplot as plt
+import numpy as np
 import rclpy
 import rclpy.serialization
-from geometry_msgs.msg import TwistWithCovarianceStamped, PoseWithCovarianceStamped
+from geometry_msgs.msg import PoseWithCovarianceStamped, TwistWithCovarianceStamped
 from nav_msgs.msg import Odometry
 from rosbag2_py import ConverterOptions, SequentialReader, StorageFilter, StorageOptions
 from scipy.spatial.transform import Rotation as R
 from sensor_msgs.msg import Imu
+
 
 class Bag_Analyzer():
     def __init__(self, path, topic_dict):
@@ -13,14 +15,14 @@ class Bag_Analyzer():
         self.topic_dict = topic_dict
         self.topic_list = list(topic_dict.keys())
         self.data = self.setup_data_fields()
-    
+
     def read_rosbag2_mcap(self):
         storage_options = StorageOptions(uri=self.path, storage_id='mcap')
         converter_options = ConverterOptions('', '')  # Use default serialization
 
         reader = SequentialReader()
         reader.open(storage_options, converter_options)
-        
+
         # Filter by topic
         reader.set_filter(StorageFilter(topics=self.topic_list))
 
@@ -32,7 +34,7 @@ class Bag_Analyzer():
 
     def setup_data_fields(self):
         data = {}
-        for topic in self.topic_dict: 
+        for topic in self.topic_dict:
             data[topic] = {}
             data[topic]["timestamps"]=[]
             if self.topic_dict[topic]["plot"][0]:
@@ -48,23 +50,23 @@ class Bag_Analyzer():
             if self.topic_dict[topic]["plot"][5]:
                 data[topic]["yaw"] = []
             if self.topic_dict[topic]["plot"][6]:
-                data[topic]["vel_x"] = [] 
+                data[topic]["vel_x"] = []
             if self.topic_dict[topic]["plot"][7]:
-                data[topic]["vel_y"] = [] 
+                data[topic]["vel_y"] = []
             if self.topic_dict[topic]["plot"][8]:
-                data[topic]["vel_z"] = [] 
+                data[topic]["vel_z"] = []
             if self.topic_dict[topic]["plot"][9]:
-                data[topic]["omega_x"] = [] 
+                data[topic]["omega_x"] = []
             if self.topic_dict[topic]["plot"][10]:
-                data[topic]["omega_y"] = [] 
+                data[topic]["omega_y"] = []
             if self.topic_dict[topic]["plot"][11]:
-                data[topic]["omega_z"] = [] 
+                data[topic]["omega_z"] = []
             if self.topic_dict[topic]["plot"][12]:
-                data[topic]["accel_x"] = [] 
+                data[topic]["accel_x"] = []
             if self.topic_dict[topic]["plot"][13]:
-                data[topic]["accel_y"] = [] 
+                data[topic]["accel_y"] = []
             if self.topic_dict[topic]["plot"][14]:
-                data[topic]["accel_z"] = [] 
+                data[topic]["accel_z"] = []
         return data
 
 
@@ -72,18 +74,18 @@ class Bag_Analyzer():
                 # Each message type has to be read differently :(
                 if self.topic_dict[topic]["type"] == 'nav_msgs::msg::Odometry':
                     # this outputs in odometry messages
-                    try: 
+                    try:
                         msg = rclpy.serialization.deserialize_message(topic_data, Odometry)
-                    except Exception as e: 
+                    except Exception as e:
                         print(f"ERROR WITH DESERIALIZATION OF {topic}! {e}")
                     self.data[topic]['timestamps'].append(timestamp_seconds)
-                    if self.topic_dict[topic]["plot"][0]: 
+                    if self.topic_dict[topic]["plot"][0]:
                         x = msg.pose.pose.position.x
                         self.data[topic]['x'].append(x)
-                    if self.topic_dict[topic]["plot"][1]: 
+                    if self.topic_dict[topic]["plot"][1]:
                         y = msg.pose.pose.position.y
                         self.data[topic]['y'].append(y)
-                    if self.topic_dict[topic]["plot"][2]: 
+                    if self.topic_dict[topic]["plot"][2]:
                         z = msg.pose.pose.position.z
                         self.data[topic]['z'].append(z)
                     qx = msg.pose.pose.orientation.x
@@ -95,36 +97,36 @@ class Bag_Analyzer():
                     qw = msg.pose.pose.orientation.w
                     #self.data[topic]['qw'].append(qw)
                     eulers = R.from_quat([qx, qy, qz, qw]).as_euler('xyz', degrees=True)
-                    if self.topic_dict[topic]["plot"][3]: 
+                    if self.topic_dict[topic]["plot"][3]:
                         self.data[topic]['roll'].append(eulers[0])
-                    if self.topic_dict[topic]["plot"][4]: 
+                    if self.topic_dict[topic]["plot"][4]:
                         self.data[topic]['pitch'].append(eulers[1])
-                    if self.topic_dict[topic]["plot"][5]: 
+                    if self.topic_dict[topic]["plot"][5]:
                         self.data[topic]['yaw'].append(eulers[2])
-                    if self.topic_dict[topic]["plot"][6]: 
+                    if self.topic_dict[topic]["plot"][6]:
                         vel_x = msg.twist.twist.linear.x
                         self.data[topic]['vel_x'].append(vel_x)
-                    if self.topic_dict[topic]["plot"][7]: 
+                    if self.topic_dict[topic]["plot"][7]:
                         vel_y = msg.twist.twist.linear.y
                         self.data[topic]['vel_y'].append(vel_y)
-                    if self.topic_dict[topic]["plot"][8]: 
+                    if self.topic_dict[topic]["plot"][8]:
                         vel_z = msg.twist.twist.linear.z
                         self.data[topic]['vel_z'].append(vel_z)
-                    if self.topic_dict[topic]["plot"][9]: 
+                    if self.topic_dict[topic]["plot"][9]:
                         omega_x = msg.twist.twist.angular.x
                         self.data[topic]['omega_x'].append(omega_x)
-                    if self.topic_dict[topic]["plot"][10]: 
+                    if self.topic_dict[topic]["plot"][10]:
                         omega_y = msg.twist.twist.angular.y
                         self.data[topic]['omega_y'].append(omega_y)
-                    if self.topic_dict[topic]["plot"][11]: 
+                    if self.topic_dict[topic]["plot"][11]:
                         omega_z = msg.twist.twist.angular.z
                         self.data[topic]['omega_z'].append(omega_z)
-                
+
                 elif self.topic_dict[topic]["type"] == 'sensor_msgs::msg::Imu':
                     # this outputs in Imu Messages
                     try:
                         msg = rclpy.serialization.deserialize_message(topic_data, Imu)
-                    except Exception as e: 
+                    except Exception as e:
                         print(f"ERROR WITH DESERIALIZATION OF {topic}! {e}")
                     self.data[topic]['timestamps'].append(timestamp_seconds)
                     qx = msg.orientation.x
@@ -136,59 +138,59 @@ class Bag_Analyzer():
                     qw = msg.orientation.w
                     #self.data[topic]['qw'].append(qw)
                     eulers = R.from_quat([qx, qy, qz, qw]).as_euler('xyz', degrees=True)
-                    if self.topic_dict[topic]["plot"][3]: 
+                    if self.topic_dict[topic]["plot"][3]:
                         self.data[topic]['roll'].append(eulers[0])
-                    if self.topic_dict[topic]["plot"][4]: 
+                    if self.topic_dict[topic]["plot"][4]:
                         self.data[topic]['pitch'].append(eulers[1])
-                    if self.topic_dict[topic]["plot"][5]: 
+                    if self.topic_dict[topic]["plot"][5]:
                         self.data[topic]['yaw'].append(eulers[2])
-                    if self.topic_dict[topic]["plot"][9]: 
+                    if self.topic_dict[topic]["plot"][9]:
                         omega_x = msg.angular_velocity.x
                         self.data[topic]['omega_x'].append(omega_x)
-                    if self.topic_dict[topic]["plot"][10]: 
+                    if self.topic_dict[topic]["plot"][10]:
                         omega_y = msg.angular_velocity.y
                         self.data[topic]['omega_y'].append(omega_y)
-                    if self.topic_dict[topic]["plot"][11]: 
+                    if self.topic_dict[topic]["plot"][11]:
                         omega_z = msg.angular_velocity.z
                         self.data[topic]['omega_z'].append(omega_z)
-                    if self.topic_dict[topic]["plot"][12]: 
+                    if self.topic_dict[topic]["plot"][12]:
                         accel_x = msg.linear_acceleration.x
                         self.data[topic]['accel_x'].append(accel_x)
-                    if self.topic_dict[topic]["plot"][13]: 
+                    if self.topic_dict[topic]["plot"][13]:
                         accel_y = msg.linear_acceleration.y
                         self.data[topic]['accel_y'].append(accel_y)
-                    if self.topic_dict[topic]["plot"][14]: 
+                    if self.topic_dict[topic]["plot"][14]:
                         accel_z = msg.linear_acceleration.z
                         self.data[topic]['accel_z'].append(accel_z)
                 elif self.topic_dict[topic]["type"] == 'geometry_msgs::msg::TwistWithCovarianceStamped':
                     # dvl velocity is a twist message
                     try:
                         msg = rclpy.serialization.deserialize_message(topic_data, TwistWithCovarianceStamped)
-                    except Exception as e: 
+                    except Exception as e:
                         print(f"ERROR WITH DESERIALIZATION OF {topic}! {e}")
                     self.data[topic]['timestamps'].append(timestamp_seconds)
-                    if self.topic_dict[topic]["plot"][6]: 
+                    if self.topic_dict[topic]["plot"][6]:
                         x = msg.twist.twist.linear.x
                         self.data[topic]['vel_x'].append(x)
-                    if self.topic_dict[topic]["plot"][7]: 
+                    if self.topic_dict[topic]["plot"][7]:
                         y = msg.twist.twist.linear.y
                         self.data[topic]['vel_y'].append(y)
-                    if self.topic_dict[topic]["plot"][8]: 
+                    if self.topic_dict[topic]["plot"][8]:
                         z = msg.twist.twist.linear.z
                         self.data[topic]['vel_z'].append(z)
-                    if self.topic_dict[topic]["plot"][9]: 
+                    if self.topic_dict[topic]["plot"][9]:
                         omega_x = msg.twist.twist.angular.x
                         self.data[topic]['omega_x'].append(omega_x)
-                    if self.topic_dict[topic]["plot"][10]: 
+                    if self.topic_dict[topic]["plot"][10]:
                         omega_y = msg.twist.twist.angular.y
                         self.data[topic]['omega_y'].append(omega_y)
-                    if self.topic_dict[topic]["plot"][11]: 
+                    if self.topic_dict[topic]["plot"][11]:
                         omega_z = msg.twist.twist.angular.z
                         self.data[topic]['omega_z'].append(omega_z)
-                elif self.topic_dict[topic]["type"] == 'geometry_msgs::msg::PoseWithCovarianceStamped': 
+                elif self.topic_dict[topic]["type"] == 'geometry_msgs::msg::PoseWithCovarianceStamped':
                     try:
                         msg = rclpy.serialization.deserialize_message(topic_data, PoseWithCovarianceStamped)
-                    except Exception as e: 
+                    except Exception as e:
                         print(f"ERROR WITH DESERIALIZATION OF {topic}! {e}")
                     self.data[topic]['timestamps'].append(timestamp_seconds)
                     if self.topic_dict[topic]["plot"][0]:
@@ -206,14 +208,14 @@ class Bag_Analyzer():
                     qw = msg.pose.pose.orientation.w
                     #self.data[topic]['qw'].append(qw)
                     eulers = R.from_quat([qx, qy, qz, qw]).as_euler('xyz', degrees=True)
-                    if self.topic_dict[topic]["plot"][3]: 
+                    if self.topic_dict[topic]["plot"][3]:
                         self.data[topic]['roll'].append(eulers[0])
-                    if self.topic_dict[topic]["plot"][4]: 
+                    if self.topic_dict[topic]["plot"][4]:
                         self.data[topic]['pitch'].append(eulers[1])
-                    if self.topic_dict[topic]["plot"][5]: 
+                    if self.topic_dict[topic]["plot"][5]:
                         self.data[topic]['yaw'].append(eulers[2])
-                    
-                else: 
+
+                else:
                     print("WARNING: TOPIC TYPE NOT SUPPORTED CURRENTLY. MAY NEED TO ADD NEW TYPE.")
 
     def plot_data(self):
@@ -227,7 +229,7 @@ class Bag_Analyzer():
 
         for i, var in enumerate(pos_variables):
             for topic in self.topic_list:
-                if self.topic_dict[topic]["plot"][i]: 
+                if self.topic_dict[topic]["plot"][i]:
                     axes[i].plot(
                         self.data[topic]['timestamps'],
                         self.data[topic][var],
@@ -263,16 +265,16 @@ class Bag_Analyzer():
 
         for i, var in enumerate(ang_vel_variables):
             for topic in self.topic_list:
-                if self.topic_dict[topic]["plot"][i+9]: 
-                    try: 
+                if self.topic_dict[topic]["plot"][i+9]:
+                    try:
                         axes[i].plot(
                             self.data[topic]['timestamps'],
                             self.data[topic][var],
-                            label=f'{topic}',
+                            label=f'{topic}, avg value: {np.mean(self.data[topic][var])}',
                         )
-                    except Exception as e: 
+                    except Exception as e:
                         print(f"message type {topic} had issue in reading: {e}")
-                        break 
+                        break
             axes[i].set_xlabel('Time [s]')
             axes[i].set_ylabel(f'{var} [rad/s]')
             axes[i].set_title(f'Angular Velocity: {var}')
@@ -286,7 +288,7 @@ class Bag_Analyzer():
 
         for i, var in enumerate(lin_vel_variables):
             for topic in self.topic_list:
-                if self.topic_dict[topic]["plot"][i+6]: 
+                if self.topic_dict[topic]["plot"][i+6]:
                     axes[i].plot(
                         self.data[topic]['timestamps'],
                         self.data[topic][var],
@@ -305,11 +307,11 @@ class Bag_Analyzer():
 
         for i, var in enumerate(accel_variables):
             for topic in self.topic_list:
-                if self.topic_dict[topic]["plot"][i+12]: 
+                if self.topic_dict[topic]["plot"][i+12]:
                     axes[i].plot(
                         self.data[topic]['timestamps'],
                         self.data[topic][var],
-                        label=f'{topic}',
+                        label=f'{topic}, avg value: {np.mean(self.data[topic][var])}',
                     )
             axes[i].set_xlabel('Time [s]')
             axes[i].set_ylabel(f'{var} [m/s^2]')
@@ -326,64 +328,64 @@ if __name__ == '__main__':
     bag_path = input('Type the full path from the current Directory to the bag')
 
     # Specify the topics to read and the data from those topics to plot.
-    # Plot field is in the form of the robot_localization ekf specification: 
+    # Plot field is in the form of the robot_localization ekf specification:
     #                 [x_pos, y_pos, z_pos,
     #                 roll, pitch, yaw,
     #                 x_vel, y_vel, z_vel,
     #                 roll_vel, pitch_vel, yaw_vel
     #                 x_accel, y_accel, z_accel]
     # Where true plots that variable, and false does not
-    
+
     topic_dictionary = {
-        '/odometry/filtered': 
+        '/odometry/filtered':
             {"type": "nav_msgs::msg::Odometry",
              "plot": [True, True, True,
-                      True, True, True, 
-                      True, True, True, 
+                      True, True, True,
+                      True, True, True,
                       True, True, True,
                       False, False, False]},
 
-        '/mavros/local_position/odom': 
+        '/mavros/local_position/odom':
             {"type": "nav_msgs::msg::Odometry",
              "plot": [True, True, True,
-                      True, True, True, 
-                      True, True, True, 
+                      True, True, True,
+                      True, True, True,
                       True, True, True,
                       False, False, False]},
 
-        "/dvl/twist_data": 
+        "/dvl/twist_data":
             {"type": "geometry_msgs::msg::TwistWithCovarianceStamped",
              "plot": [False, False, False,
-                      False, False, False, 
-                      True, True, True, 
+                      False, False, False,
+                      True, True, True,
                       False, False, False,
                       False, False, False]},
 
-        "/vectornav/Imu_body": 
+        "/vectornav/Imu_body":
             {"type": "sensor_msgs::msg::Imu",
              "plot": [False, False, False,
                       True, True, True,
-                      False, False, False, 
+                      False, False, False,
                       True, True, True,
                       True, True, True]},
 
-        "/vectornav/filterred_orientation": 
+        "/vectornav/filterred_orientation":
             {"type": "geometry_msgs::msg::PoseWithCovarianceStamped",
              "plot": [False, False, False,
                       True, True, True,
-                      False, False, False, 
+                      False, False, False,
                       False, False, False,
                       False, False, False]},
-        
-        "/mavros/vision_pose/pose_cov": 
+
+        "/mavros/vision_pose/pose_cov":
             {"type": "geometry_msgs::msg::PoseWithCovarianceStamped",
              "plot": [True, True, True,
                       True, True, True,
-                      False, False, False, 
+                      False, False, False,
                       False, False, False,
                       False, False, False]}
         }
-        
+
     #initialize analyzer and plot data
     analyzer = Bag_Analyzer(bag_path, topic_dictionary)
     analyzer.plot_data()
