@@ -9,7 +9,7 @@ ekf_filter_node:
 
       map_frame: map_ned
       odom_frame: odom_ned
-      base_link_frame: base_link
+      base_link_frame: base_link_fsd
       world_frame: odom_ned
 
       # When declaring parameters, do it in the following way:

@@ -19,6 +19,40 @@ class Initializer(Node):
     def __init__(self):
         super().__init__('initializer')
 
+        #import all the ros parameters
+        self.declare_parameter("port1_data_register", 16)
+        self.declare_parameter("port1_frequency", 50)
+
+        self.declare_parameter("port2_data_register", 254)
+        self.declare_parameter("port2_frequency", 50)
+
+        self.declare_parameter("gp_origin_lat", 47.3769)
+        self.declare_parameter("gp_origin_long", 8.5417)
+        self.declare_parameter("gp_origin_alt", 0.0)
+
+        self.declare_parameter("init_pose_x", 0.0)
+        self.declare_parameter("init_pose_y", 0.0)
+        self.declare_parameter("init_pose_z", 0.0)
+
+        self.declare_parameter("rot_matrix_imu_to_body", [1.0,0.0,0.0,0.0,0.0,-1.0,0.0,1.0,0.0])
+
+        #Get all the parameters
+        self.port1_data_register = self.get_parameter("port1_data_register").get_parameter_value().integer_value
+        self.port1_frequency = self.get_parameter("port1_frequency").get_parameter_value().integer_value
+
+        self.port2_data_register = self.get_parameter("port2_data_register").get_parameter_value().integer_value
+        self.port2_frequency = self.get_parameter("port2_frequency").get_parameter_value().integer_value
+
+        self.gp_origin_lat = self.get_parameter("gp_origin_lat").get_parameter_value().double_value
+        self.gp_origin_long = self.get_parameter("gp_origin_long").get_parameter_value().double_value
+        self.gp_origin_alt = self.get_parameter("gp_origin_alt").get_parameter_value().double_value
+
+        self.init_pose_x = self.get_parameter("init_pose_x").get_parameter_value().double_value
+        self.init_pose_x = self.get_parameter("init_pose_y").get_parameter_value().double_value
+        self.init_pose_x = self.get_parameter("init_pose_z").get_parameter_value().double_value
+
+        self.imu_orientation = self.get_parameter("rot_matrix_imu_to_body").get_parameter_value().double_array_value
+
         # Create the client for the IMU Configuration service
         self.cli = self.create_client(ConfigureVN100, '/configure_vn100')
         while not self.cli.wait_for_service(timeout_sec=5.0):
@@ -38,25 +72,25 @@ class Initializer(Node):
         #first, send the imu the command to output the correct data from the correct ports 
         req_port1_dataType = ConfigureVN100.Request()
         req_port1_dataType.port = "imu"
-        req_port1_dataType.msg = "VNWRG,06,16,1"#True body-fixed accelerations
+        req_port1_dataType.msg = f"VNWRG,06,{self.port1_data_register},1"#True body-fixed accelerations
         response_port1_dataType = self.cli.call_async(req_port1_dataType)
         self.get_logger().info(f'Sent configuration command for port 1 output data type. Response: {response_port1_dataType.result()}')
 
         req_port1_dataRate = ConfigureVN100.Request()
         req_port1_dataRate.port = "imu"
-        req_port1_dataRate.msg = "VNWRG,07,50,1" #50Hz 
+        req_port1_dataRate.msg = f"VNWRG,07,{self.port1_frequency},1" #50Hz 
         response_port1_dataRate = self.cli.call_async(req_port1_dataRate)
         self.get_logger().info(f'Sent configuration command for port 1 output data rate. Response: {response_port1_dataRate.result()}')
         
         req_port2_dataType = ConfigureVN100.Request()
         req_port2_dataType.port = "imu"
-        req_port2_dataType.msg = "VNWRG,06,254,2" #kalman-filterred output
+        req_port2_dataType.msg = f"VNWRG,06,{self.port2_data_register},2" #kalman-filterred output
         response_port2_dataType = self.cli.call_async(req_port2_dataType)
         self.get_logger().info(f'Sent configuration command for port 2 output data type. Response: {response_port2_dataType.result()}')
 
         req_port2_dataRate = ConfigureVN100.Request()
         req_port2_dataRate.port = "imu"
-        req_port2_dataRate.msg = "VNWRG,07,50,2"
+        req_port2_dataRate.msg = f"VNWRG,07,{self.port2_frequency},2"
         response_port2_dataRate = self.cli.call_async(req_port2_dataRate)
         self.get_logger().info(f'Sent configuration command for port 2 output data rate. Response: {response_port2_dataRate.result()}')
         
@@ -64,6 +98,7 @@ class Initializer(Node):
         req_orient = ConfigureVN100.Request()
         req_orient.port = "imu"
         req_orient.msg = "VNWRG,26,1,0,0,0,0,-1,0,1,0"
+        req_orient.msg = f"VNWRG,26,{str(self.imu_orientation).strip('[]').replace(' ','')}"
         response_orient = self.cli.call_async(req_orient)
         self.get_logger().info(f'Sent configuration command for sensor orientation. Response: {response_orient.result()}')
 
@@ -89,9 +124,9 @@ class Initializer(Node):
         local_msg = PoseWithCovarianceStamped()
         local_msg.header.frame_id = "map"
         local_msg.header.stamp = self.get_clock().now().to_msg()
-        local_msg.pose.pose.position.x = 10.0
-        local_msg.pose.pose.position.y = 10.0
-        local_msg.pose.pose.position.z = 10.0
+        local_msg.pose.pose.position.x = 0.0
+        local_msg.pose.pose.position.y = 0.0
+        local_msg.pose.pose.position.z = 0.0
         local_msg.pose.pose.orientation.w = 1.0
         self.local_pub.publish(local_msg)
         self.get_logger().info('Published reference local position.')

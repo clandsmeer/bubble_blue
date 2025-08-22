@@ -1,0 +1,28 @@
+initializer: 
+  ros__parameters:
+    port1_data_register: 16
+    port1_frequency: 50
+
+    port2_data_register: 254
+    port2_frequency: 50
+
+    gp_origin_lat: 47.3769
+    gp_origin_long: 8.5417
+    gp_origin_alt: 0.0
+
+    init_pose_x: 0.0
+    init_pose_y: 0.0
+    init_pose_z: 0.0
+
+    rot_matrix_imu_to_body: [1.0, 0.0, 0.0,
+                             0.0, 0.0, -1.0,
+                             0.0, 1.0, 0.0]
+
+vectornav_manager: 
+  ros__parameters:
+    port1: "/dev/ttyAMA4"
+    port2: "/dev/ttyAMA5"
+    baudrate: 115200
+    print_output: false
+    read_time: 2.0
+

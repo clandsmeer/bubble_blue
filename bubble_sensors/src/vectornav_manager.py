@@ -17,8 +17,6 @@ import numpy as np
 from sensor_msgs.msg import Imu
 from geometry_msgs.msg import PoseWithCovarianceStamped
 import threading
-import signal 
-import sys
 
 # just gets the checksum in order to complete the raw message
 def vn_checksum(payload: str) -> str:
@@ -37,22 +35,22 @@ class VN100Manager(Node):
         super().__init__('vectornav_manager')
 
         # declare the parameters for the ports and baudrate
-        self.declare_parameter("imu_port", '/dev/ttyAMA4')
-        self.declare_parameter('kf_port', '/dev/ttyAMA5')
+        self.declare_parameter("port1", '/dev/ttyAMA4')
+        self.declare_parameter('port2', '/dev/ttyAMA5')
         self.declare_parameter('baudrate', 115200)
         self.declare_parameter('print_output', False)
         self.declare_parameter('read_time', 10.0)
 
         # Configure the two UART ports(imu port for imu, kf port for kalman filter outputs)
-        self.imu_port = self.get_parameter("imu_port").get_parameter_value().string_value 
-        self.kf_port  = self.get_parameter("kf_port").get_parameter_value().string_value  
+        self.port1 = self.get_parameter("port1").get_parameter_value().string_value 
+        self.port2  = self.get_parameter("port2").get_parameter_value().string_value  
         self.baudrate = self.get_parameter("baudrate").get_parameter_value().integer_value
         self.print_output = self.get_parameter("print_output").get_parameter_value().bool_value
-        self.read_time = self.get_parameter("read_time").get_parameter_value().double_value
+        self.read_time = self.get_parameter("read_time")
         # some configuration for the ports
         try: 
-            self.ser_imu = serial.Serial(self.imu_port, self.baudrate, timeout=1, rtscts=True)
-            self.ser_kf  = serial.Serial(self.kf_port,  self.baudrate, timeout=1, rtscts=True)
+            self.ser_port1 = serial.Serial(self.port1, self.baudrate, timeout=1, rtscts=True)
+            self.ser_port2  = serial.Serial(self.port2,  self.baudrate, timeout=1, rtscts=True)
         except Exception as e: 
             self.get_logger().error(f"ERROR OPENING SERIAL PORTS: {e}")
 
@@ -60,7 +58,7 @@ class VN100Manager(Node):
         self.srv = self.create_service(ConfigureVN100, 'configure_vn100', self.handle_configure)
 
         self.get_logger().info("VN100 Command Node is Running. Use the /ConfigureVN100 service call to send a message to a particular port")
-        self.get_logger().info(f"The imu port is {self.imu_port}, and the kf port is {self.kf_port}")
+        self.get_logger().info(f"The imu port is {self.port1}, and the kf port is {self.port2}")
         self.get_logger().info("Example Command: ros2 service call /configure_vn100 bubble_sensors/srv/ConfigureVN100 \"{port:'imu', msg:'VNWRG,06,1,1'} ")
 
         #Create the publishers for the ros nodes
@@ -75,7 +73,7 @@ class VN100Manager(Node):
     def port1_reader(self): 
         while self.reading: 
             try: 
-                msg = self.ser_imu.readline().decode('ascii', errors='ignore').strip()  
+                msg = self.ser_port1.readline().decode('ascii', errors='ignore').strip()  
                 if not msg:
                     #empty messages, skip this
                     continue
@@ -143,7 +141,7 @@ class VN100Manager(Node):
     def port2_reader(self): 
         while self.reading: 
             try:
-                msg = self.ser_kf.readline().decode('ascii', errors='ignore').strip()  
+                msg = self.ser_port2.readline().decode('ascii', errors='ignore').strip()  
                 if not msg:
                     #empty messages
                     continue
@@ -191,9 +189,9 @@ class VN100Manager(Node):
         port = request.port
         try: 
             if port == "imu": 
-                self.ser_imu.write(full_vn_message(request.msg))
+                self.ser_port1.write(full_vn_message(request.msg))
             if port == "kf":
-                self.ser_kf.write(full_vn_message(request.msg))
+                self.ser_port2.write(full_vn_message(request.msg))
         except Exception as e: 
             self.get_logger().error(f"Error sending the request! Error: {e}") 
             response.success = False
@@ -207,10 +205,10 @@ class VN100Manager(Node):
             try: 
                 while time.time() < timeout: 
                     if port == "imu": 
-                        line = self.ser_imu.readline().decode('ascii', errors='ignore').strip()  
+                        line = self.ser_port1.readline().decode('ascii', errors='ignore').strip()  
                         self.get_logger().info(f"FROM IMU PORT: {line}") 
                     if port == "kf":
-                        line = self.ser_kf.readline().decode('ascii', errors='ignore').strip() 
+                        line = self.ser_port2.readline().decode('ascii', errors='ignore').strip() 
                         self.get_logger().info(f"FROM KF PORT: {line}") 
             except KeyboardInterrupt: 
                 self.get_logger().warn("KeyboardInterrupt on listening step")
