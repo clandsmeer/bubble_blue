@@ -29,4 +29,8 @@ vectornav_manager:
     imu_ang_vel_covariance: 0.01
     imu_orientation_cov: 0.05
     init_kf_orient_cov: 0.01
+    mag_ref_x: 0.22 #Zurich Magnetic Field
+    mag_ref_y: 0.03
+    mag_ref_z: 0.89
 
+    gravity: 9.80600 #Zurich Gravity Strength(swiss gravity zones website)

@@ -319,6 +319,18 @@ class Bag_Analyzer():
             axes[i].grid(True)
             axes[i].legend()
 
+        splits_x = np.array_split(self.data["/vectornav/Imu_body"]["accel_x"], 10)
+        averages_x = [np.mean(segment) for segment in splits_x]
+        print(f"Average for each of the 10 segments of x:\n {np.round(averages_x,6)}\n\n")
+
+        splits_y = np.array_split(self.data["/vectornav/Imu_body"]["accel_y"], 10)
+        averages_y = [np.mean(segment) for segment in splits_y]
+        print(f"Average for each of the 10 segments of y:\n {np.round(averages_y,6)}\n\n")
+
+        splits_z = np.array_split(self.data["/vectornav/Imu_body"]["accel_z"], 10)
+        averages_z = [np.mean(segment) for segment in splits_z]
+        print(f"Average for each of the 10 segments of z:\n {np.round(averages_z,6) }\n\n")
+
         plt.show()
 
 if __name__ == '__main__':

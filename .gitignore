@@ -23,3 +23,5 @@ logs/
 #ignore all rosbag2 files
 rosbag2*
 ROS2BAG*
+*.mcap
+metadata.yaml
