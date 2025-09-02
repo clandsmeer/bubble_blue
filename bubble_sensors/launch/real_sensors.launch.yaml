@@ -11,34 +11,19 @@ launch:
   - arg:
       name: use_ekf
       default: "true"
-  
-  - arg: 
+
+  - arg:
       name: dvl_timer_wait
       default: '10.0'
 
- #REMOVING THE VECTORNAV NODE FOR TESTING THE NEW VN100 Manager
-  #- node:vectornav
-      #if: $(var use_imu)
-      #exec: vectornav
-      #output: screen
-      #param:
-      #  - from: $(find-pkg-share bubble_sensors)/config/vectornav.yaml
-  #- node:
-      #pkg: vectornav  
-      #if: $(var use_imu)
-      #exec: vn_sensor_msgs
-      #output: screen
-      #param:
-      #- from: $(find-pkg-share bubble_sensors)/config/vectornav.yaml
-  
-  - node: 
+  - node:
       pkg: bubble_sensors
       if: $(var use_imu)
       exec: vectornav_manager.py
       output: screen
       param:
       - from: $(find-pkg-share bubble_sensors)/config/sensor_config.yaml
-        
+
   - node:
       pkg: dvl_a50
       if: $(var use_dvl)
@@ -47,34 +32,25 @@ launch:
       param:
         - name: ip_address
           value: 192.168.194.95
-          
-  - node: 
-      pkg: bubble_sensors
-      if: $(var use_dvl)
-      exec: dvl_enabler.py
-      name: dvl_configurator
-      param: 
-        - name: timer_wait
-          value: $(var dvl_timer_wait)
 
-  - node: 
+  - node:
       pkg: bubble_sensors
       if: $(var use_dvl)
       exec: dvl_message_converter
-      param: 
+      param:
         - name: input_topic
           value: "/dvl/data"
         - name: output_topic
           value: "/dvl/twist_data"
 
   #Initializer Node:
-  - node: 
+  - node:
       pkg: bubble_sensors
       exec: initializer.py
       output: screen
       param:
       - from: $(find-pkg-share bubble_sensors)/config/sensor_config.yaml
-  
+
   # Define the transformations from the base link into the dvl and imu frames
   - node:
       pkg: tf2_ros
@@ -86,7 +62,7 @@ launch:
       pkg: tf2_ros
       exec: static_transform_publisher
       name: base_link_to_vn100
-      args: --x 0.02 --y 0.0 --z -0.05 --roll 0.0 --pitch 0.0 --yaw 0.0 --frame-id base_link_fsd --child-frame-id vectornav 
+      args: --x 0.02 --y 0.0 --z -0.05 --roll 0.0 --pitch 0.0 --yaw 0.0 --frame-id base_link_fsd --child-frame-id vectornav
 
   - include:
       if: $(var use_ekf)

@@ -6,7 +6,7 @@ initializer:
     port2_data_register: 254
     port2_frequency: 50
 
-    gp_origin_lat: 47.3769
+    gp_origin_lat: 47.3769 #Zurich GPS coordinates
     gp_origin_long: 8.5417
     gp_origin_alt: 0.0
 

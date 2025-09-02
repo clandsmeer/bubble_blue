@@ -9,6 +9,7 @@ on the BlueRov2. It is called via the /initialize service of type std_srvs/srv/T
 """
 
 import rclpy
+from dvl_msgs.msg import ConfigCommand
 from geographic_msgs.msg import GeoPointStamped
 from geometry_msgs.msg import PoseWithCovarianceStamped
 from rclpy.node import Node
@@ -74,6 +75,7 @@ class Initializer(Node):
         # Publishers for global and local positions
         self.global_pub = self.create_publisher(GeoPointStamped, '/mavros/global_position/set_gp_origin', 10)
         self.local_pub = self.create_publisher(PoseWithCovarianceStamped, '/mavros/local_position/pose_cov', 10)
+        self.dvl_publisher = self.create_publisher(ConfigCommand, '/dvl/config/command', 10)
 
         #create the triggerred service that initailizes the system.
         self.init_service = self.create_service(Trigger, "initialize", self.init_service_callback)
@@ -122,18 +124,30 @@ class Initializer(Node):
         # Next, send the global/local reference positions
         self.publish_reference_positions()
 
+        #Finally, enable accoustic for the dvl
+        self.send_dvl_enable()
+
         # TODO: More sophisticated handling of service response
         response.success = True
         response.message = "PLACEHOLDER MESSAGE FOR SERVICE STATUS FOR INITIAL TESITNG. MUST UPDATE."
         return response
 
+    def send_dvl_enable(self):
+        msg = ConfigCommand()
+        msg.command = 'set_config'
+        msg.parameter_name = 'acoustic_enabled'
+        msg.parameter_value = 'true'
+        self.dvl_publisher.publish(msg)
+        self.get_logger().info('Sent configuration command to enable dvl.')
+        #TODO: Add a check of the status topic to check if this has been carried out.
+
     def publish_reference_positions(self):
         # Reference global position (example values)
         global_msg = GeoPointStamped()
         global_msg.header.stamp = self.get_clock().now().to_msg()
-        global_msg.position.latitude = 47.3769
-        global_msg.position.longitude = 8.5417
-        global_msg.position.altitude = 0.0
+        global_msg.position.latitude = self.gp_origin_lat
+        global_msg.position.longitude = self.gp_origin_long
+        global_msg.position.altitude = self.gp_origin_alt
         self.global_pub.publish(global_msg)
         self.get_logger().info('Published reference global position.')
 
