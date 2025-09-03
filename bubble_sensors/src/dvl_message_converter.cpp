@@ -4,7 +4,7 @@ Author: Henry Adam
 Date: Aug 12, 2025
 
 This file takes in messages from the ros2 dvl package and converts them to twistWithCovarianceStamped
-message types. This way, the robot_localization ekf can read them and fuse them into usable data. 
+message types. This way, the robot_localization ekf can read them and fuse them into usable data.
 */
 
 #include "rclcpp/rclcpp.hpp"
@@ -50,26 +50,26 @@ public:
 private:
   void conversion_callback(const dvl_msgs::msg::DVL &msg)
   {
-    try { 
+    try {
       // create the variable that will store the new noisy message
     geometry_msgs::msg::TwistWithCovarianceStamped converted_msg;
 
     // transfer the header
-    converted_msg.header = msg.header; 
+    converted_msg.header = msg.header;
 
     //put in the velcity measurement
-    converted_msg.twist.twist.linear = msg.velocity; 
+    converted_msg.twist.twist.linear = msg.velocity;
 
     // add the covariane methods
     converted_msg.twist.covariance[0] = msg.covariance[0];
     converted_msg.twist.covariance[7] = msg.covariance[4];
     converted_msg.twist.covariance[14] = msg.covariance[8];
-    
+
     converted_publisher->publish(converted_msg);
-    } catch (const std::exception& e){ 
+    } catch (const std::exception& e){
       RCLCPP_ERROR(this->get_logger(), "Exception somewhre in the conversion process: %s", e.what());
     }
-    
+
 
   }
 
@@ -80,7 +80,7 @@ private:
   // input and output topic variable declaration
   std::string input_topic_name_;
   std::string output_topic_name_;
-  
+
 };
 
 // define the main function which actually spins the sensor up

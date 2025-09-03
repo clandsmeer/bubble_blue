@@ -61,7 +61,7 @@ launch:
       name: mavros_file_sim
       default: $(find-pkg-share blue_description)/config/ardusub/mavros_sim.yaml
 
-  - arg: 
+  - arg:
       name: mavros_file_real
       default: $(find-pkg-share blue_description)/config/ardusub/mavros.yaml
 
@@ -124,7 +124,7 @@ launch:
           value: $(var use_sim)
         - name: use_manager
           value: $(var use_manager)
-    
+
   - include:
       file: $(find-pkg-share ardusub_bringup)/launch/ardusub.launch.yaml
       if: $(not $(var use_sim))

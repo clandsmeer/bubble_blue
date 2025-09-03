@@ -7,5 +7,5 @@ ardusub_manager:
     ekf_origin:
         latitude: 47.3769
         longitude: 8.5417
-        altitude: 0.0 
+        altitude: 0.0
     publish_tf: false

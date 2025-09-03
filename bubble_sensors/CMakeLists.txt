@@ -79,7 +79,7 @@ install(PROGRAMS
   DESTINATION lib/${PROJECT_NAME}
 )
 
-# add the custom service for IMU Configuration 
+# add the custom service for IMU Configuration
 rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/ConfigureVN100.srv"
   DEPENDENCIES std_msgs
