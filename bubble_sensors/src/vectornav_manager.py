@@ -17,6 +17,7 @@ import serial
 from geometry_msgs.msg import PoseWithCovarianceStamped
 from rclpy.node import Node
 from sensor_msgs.msg import Imu
+from std_srvs.srv import Trigger, SetBool
 
 from bubble_sensors.srv import ConfigureVN100
 
@@ -33,6 +34,10 @@ def full_vn_message(payload: str) -> bytes:
     cks = vn_checksum(payload)
     return f"${payload}*{cks}\r\n".encode('ascii')
 
+#Average Update Equation that only needs previous average and number of samples
+def average_update(avg_k_minus_1, k, sample_k):
+    return avg_k_minus_1 * ((k-1)/k) + sample_k/k
+
 class VN100Manager(Node):
     def __init__(self):
         super().__init__('vectornav_manager')
@@ -47,6 +52,7 @@ class VN100Manager(Node):
         self.declare_parameter('imu_ang_vel_covariance', 0.01)
         self.declare_parameter('imu_orientation_cov', 0.05)
         self.declare_parameter('init_kf_orient_cov', 0.01)
+        self.declare_parameter('bias_averaging_time', 30.0)
 
         # Configure the two UART ports(imu port for imu, kf port for kalman filter outputs)
         self.port1 = self.get_parameter("port1").get_parameter_value().string_value
@@ -62,6 +68,14 @@ class VN100Manager(Node):
         self.orient_y_cov = self.init_orient
         self.orient_z_cov = self.init_orient
 
+        # Create the variables to store IMU biases
+        # bias_body_i variable stores rolling average
+        self.bias_body_x = 0
+        self.bias_body_y = 0
+        self.bias_body_z = 0
+        self.k = 1 # for rolling average
+        self.bias_averaging_time = self.get_parameter("bias_averaging_time").get_parameter_value().double_value
+
         # some configuration for the ports
         try:
             self.ser_port1 = serial.Serial(self.port1, self.baudrate, timeout=1, rtscts=True)
@@ -69,18 +83,24 @@ class VN100Manager(Node):
         except Exception as e:
             self.get_logger().error(f"ERROR OPENING SERIAL PORTS: {e}")
 
-        # Create service: when called, performs calibration and config
-        self.srv = self.create_service(ConfigureVN100, 'configure_vn100', self.handle_configure)
+        # Create service for configuring vectornav registers
+        self.config_srv = self.create_service(ConfigureVN100, 'configure_vn100', self.handle_configure)
+
+        # Create service for Triggering Bias estimation process
+        self.bias_srv = self.create_service(Trigger, "estimate_bias", self.estimate_biases)
+
+        #Create service for starting and stopping the serial port process
+        self.read_srv = self.create_service(SetBool, "set_reading_status", self.toggle_reading_status)
 
         self.get_logger().info("VN100 Command Node is Running. Use the /ConfigureVN100 service call to send a message to a particular port")
         self.get_logger().info(f"The imu port is {self.port1}, and the kf port is {self.port2}")
         self.get_logger().info("Example Command: ros2 service call /configure_vn100 bubble_sensors/srv/ConfigureVN100 \"{port:'imu', msg:'VNWRG,06,1,1'} ")
 
-        #Create the publishers for the ros nodes
+        # Create the publishers for the ros nodes
         self.imu_pub = self.create_publisher(Imu, "/vectornav/Imu_body", 10)
         self.orient_pub = self.create_publisher(PoseWithCovarianceStamped, "/vectornav/filterred_orientation", 10)
 
-        self.reading = False
+        self.ports_active = False
         self.port1_thread = None
         self.port2_thread = None
         self.thread_lock = threading.Lock()
@@ -89,76 +109,110 @@ class VN100Manager(Node):
         self.create_timer(1, self.request_covariance)
 
     def port1_reader(self):
-        while self.reading:
+        while self.ports_active:
             try:
-                msg = self.ser_port1.readline().decode('ascii', errors='ignore').strip()
-                if not msg:
-                    #empty messages, skip this
-                    continue
-                parsed_msg = msg.split("*")[0].split(",")
-                msg_type = parsed_msg[0]
-                imu_message = Imu()
-                # TODO: Add message type handling
-                # For now, assuming port 1 has gravity-compensated accel data
-                if msg_type == "$VNYBA":
-                    yaw = float(parsed_msg[1])
-                    cy = np.cos(yaw * np.pi/180 * 0.5)
-                    sy = np.sin(yaw * np.pi/180 * 0.5)
+                if self.publishing_data:
+                    msg = self.ser_port1.readline().decode('ascii', errors='ignore').strip()
+                    if not msg:
+                        #empty messages, skip this
+                        continue
+                    parsed_msg = msg.split("*")[0].split(",")
+                    msg_type = parsed_msg[0]
+                    imu_message = Imu()
+                    # TODO: Add more message type handling
+                    # For now, assuming port 1 has gravity-compensated accel data
+                    if msg_type == "$VNYBA":
+                        yaw = float(parsed_msg[1])
+                        cy = np.cos(yaw * np.pi/180 * 0.5)
+                        sy = np.sin(yaw * np.pi/180 * 0.5)
 
-                    pitch = float(parsed_msg[2])
-                    cp = np.cos(pitch * np.pi/180 * 0.5)
-                    sp = np.sin(pitch * np.pi/180 * 0.5)
+                        pitch = float(parsed_msg[2])
+                        cp = np.cos(pitch * np.pi/180 * 0.5)
+                        sp = np.sin(pitch * np.pi/180 * 0.5)
 
-                    roll = float(parsed_msg[3])
-                    cr = np.cos(roll * np.pi/180 * 0.5)
-                    sr = np.sin(roll * np.pi/180 * 0.5)
+                        roll = float(parsed_msg[3])
+                        cr = np.cos(roll * np.pi/180 * 0.5)
+                        sr = np.sin(roll * np.pi/180 * 0.5)
 
-                    #Orientation and Associated Covariance
-                    imu_message.orientation.x = sr * cp * cy - cr * sp * sy
-                    imu_message.orientation.y = cr * sp * cy + sr * cp * sy
-                    imu_message.orientation.z = cr * cp * sy - sr * sp * cy
-                    imu_message.orientation.w = cr * cp * cy + sr * sp * sy
-                    imu_message.orientation_covariance[0] = self.imu_orientation_cov #to make it higher than KF-output
-                    imu_message.orientation_covariance[4] = self.imu_orientation_cov
-                    imu_message.orientation_covariance[8] = self.imu_orientation_cov
+                        #Orientation and Associated Covariance
+                        imu_message.orientation.x = sr * cp * cy - cr * sp * sy
+                        imu_message.orientation.y = cr * sp * cy + sr * cp * sy
+                        imu_message.orientation.z = cr * cp * sy - sr * sp * cy
+                        imu_message.orientation.w = cr * cp * cy + sr * sp * sy
+                        imu_message.orientation_covariance[0] = self.imu_orientation_cov #to make it higher than KF-output
+                        imu_message.orientation_covariance[4] = self.imu_orientation_cov
+                        imu_message.orientation_covariance[8] = self.imu_orientation_cov
 
-                    #Angular Velocity and Associated Covariance
-                    #should be compensated for bias according to ICD
-                    imu_message.angular_velocity.x = float(parsed_msg[7])
-                    imu_message.angular_velocity.y = float(parsed_msg[8])
-                    imu_message.angular_velocity.z = float(parsed_msg[9])
-                    imu_message.angular_velocity_covariance[0] = self.imu_ang_vel_covariance
-                    imu_message.angular_velocity_covariance[4] = self.imu_ang_vel_covariance
-                    imu_message.angular_velocity_covariance[8] = self.imu_ang_vel_covariance
+                        #Angular Velocity and Associated Covariance
+                        #should be compensated for bias according to ICD
+                        imu_message.angular_velocity.x = float(parsed_msg[7])
+                        imu_message.angular_velocity.y = float(parsed_msg[8])
+                        imu_message.angular_velocity.z = float(parsed_msg[9])
+                        imu_message.angular_velocity_covariance[0] = self.imu_ang_vel_covariance
+                        imu_message.angular_velocity_covariance[4] = self.imu_ang_vel_covariance
+                        imu_message.angular_velocity_covariance[8] = self.imu_ang_vel_covariance
 
-                    #Linear Acceleration and Associated Covariance
-                    imu_message.linear_acceleration.x = float(parsed_msg[4])
-                    imu_message.linear_acceleration.y = float(parsed_msg[5])
-                    imu_message.linear_acceleration.z = float(parsed_msg[6])
-                    imu_message.linear_acceleration_covariance[0] = self.imu_accel_cov
-                    imu_message.linear_acceleration_covariance[4] = self.imu_accel_cov
-                    imu_message.linear_acceleration_covariance[8] = self.imu_accel_cov
+                        #Linear Acceleration and Associated Covariance
+                        imu_message.linear_acceleration.x = float(parsed_msg[4]) - self.bias_body_x
+                        imu_message.linear_acceleration.y = float(parsed_msg[5]) - self.bias_body_y
+                        imu_message.linear_acceleration.z = float(parsed_msg[6]) - self.bias_body_z
+                        imu_message.linear_acceleration_covariance[0] = self.imu_accel_cov
+                        imu_message.linear_acceleration_covariance[4] = self.imu_accel_cov
+                        imu_message.linear_acceleration_covariance[8] = self.imu_accel_cov
 
-                    # TODO: Make the Covariance a ros2 parameter
-                    #create the header for the message
-                    imu_message.header.frame_id = "base_link_frd"
-                    imu_message.header.stamp = self.get_clock().now().to_msg()
+                        #create the header for the message
+                        imu_message.header.frame_id = "base_link_frd"
+                        imu_message.header.stamp = self.get_clock().now().to_msg()
 
-                    #actually publish the message
-                    self.imu_pub.publish(imu_message)
-                elif msg_type == "$VNERR":
-                    # there is some error in the vn100, print it to the logger
-                    self.get_logger().error(f"Error code {parsed_msg[1]} in vn100 node")
-                else:
-                    #for now, there is no handling of other message types, so just throw an error here:
-                    self.get_logger().error("UNHANDLED MESSAGE TYPE IN PORT 1")
+                        #actually publish the message
+                        self.imu_pub.publish(imu_message)
+
+                    elif msg_type == "$VNERR":
+                        # there is some error in the vn100, print it to the logger
+                        self.get_logger().error(f"Error code {parsed_msg[1]} in vn100 node")
+
+                    elif msg_type == "$VNYMR":
+                        # This is the default, so don't worry unless the port expects to be
+                        #publishing data
+                        if self.publishing_data:
+                            self.get_logger().warn("Port 2 should be publishing data, but output is still default")
+
+                    else:
+                        #for now, there is no handling of other message types, so just throw an error here:
+                        self.get_logger().error("UNHANDLED MESSAGE TYPE IN PORT 1")
+
+                elif self.estimating_bias:
+                    msg = self.ser_port1.readline().decode('ascii', errors='ignore').strip()
+                    if not msg:
+                        #empty messages, skip this
+                        continue
+                    parsed_msg = msg.split("*")[0].split(",")
+                    msg_type = parsed_msg[0]
+                    imu_message = Imu()
+                    # Read the body-fixed accelerations to estimate the bias
+                    if msg_type == "$VNYBA":
+
+                        #Linear Acceleration and Associated Covariance
+                        x = float(parsed_msg[4])
+                        y = float(parsed_msg[5])
+                        z = float(parsed_msg[6])
+
+                        self.bias_body_x = average_update(self.bias_body_x, self.k, x)
+                        self.bias_body_y = average_update(self.bias_body_y, self.k, y)
+                        self.bias_body_z = average_update(self.bias_body_z, self.k, z)
+                        self.k+=1
+
+                    else:
+                        self.get_logger().warn("BIAS ESTIMATE CALLED BEFORE IMU OUTPUTTING BODY-FIXED COORDINATES")
+
             except Exception as e:
                     self.get_logger().error(f"Error in Port 1: {e}")
+
         self.get_logger().info("Serial Port 1 Closing")
         return
 
     def port2_reader(self):
-        while self.reading:
+        while self.ports_active:
             try:
                 msg = self.ser_port2.readline().decode('ascii', errors='ignore').strip()
                 if not msg:
@@ -170,42 +224,52 @@ class VN100Manager(Node):
                 # TODO: Add message type handling
                 # For now, assuming port 2 has Kalman-Filterred Data
                 if msg_type == "$VNSTV":
-
                     ekf_message.pose.pose.orientation.x = float(parsed_msg[1])
                     ekf_message.pose.pose.orientation.y = float(parsed_msg[2])
                     ekf_message.pose.pose.orientation.z = float(parsed_msg[3])
                     ekf_message.pose.pose.orientation.w = float(parsed_msg[4])
-                    #for pose.pose.position, indicate that they are not to be included
-                    ekf_message.pose.covariance[0] = -1
-                    ekf_message.pose.covariance[7] = -1
-                    ekf_message.pose.covariance[14] = -1
 
-                    #For orientation, give example covariance
+                    # For orientation, give example covariance
                     # TODO: Replace these with periodically sampled covariances from the vn100
                     ekf_message.pose.covariance[21] = self.orient_x_cov
                     ekf_message.pose.covariance[28] = self.orient_y_cov
                     ekf_message.pose.covariance[35] = self.orient_z_cov
 
-                    #create the header for the message
+
+                    # for pose.pose.position, indicate that they are not to be included
+                    ekf_message.pose.covariance[0] = -1
+                    ekf_message.pose.covariance[7] = -1
+                    ekf_message.pose.covariance[14] = -1
+
+                    # create the header for the message
                     ekf_message.header.frame_id = "map_ned" #publishes the
                     ekf_message.header.stamp = self.get_clock().now().to_msg()
 
-                    #actually publish the message
+                    # actually publish the message
                     self.orient_pub.publish(ekf_message)
 
                 elif msg_type == "$VNERR":
                     # there is some error in the vn100, print it to the logger
                     self.get_logger().error(f"Error code {parsed_msg[1]} in vn100 node")
+
                 elif msg_type == "$VNCOV":
                     self.orient_x_cov = float(parsed_msg[1])
                     self.orient_y_cov = float(parsed_msg[2])
                     self.orient_z_cov = float(parsed_msg[3])
                     self.get_logger().info(f"Orientation covariance is [{self.orient_x_cov}, {self.orient_y_cov}, {self.orient_z_cov}]")
+
                 elif msg_type == "$VNRRG" and int(parsed_msg[1]) == 254:
-                    #this is the read register response for the covariance, read it the same as above
+                    # this is the read register response for the covariance, read it the same as above
                     self.orient_x_cov = float(parsed_msg[2])
                     self.orient_y_cov = float(parsed_msg[3])
                     self.orient_z_cov = float(parsed_msg[4])
+
+                elif msg_type == "$VNYMR":
+                    # This is the default, so don't worry unless the port expects to be
+                    #publishing data
+                    if self.publishing_data:
+                        self.get_logger().warn("Port 2 should be publishing data, but output is still default")
+
                 else:
                     #for now, there is no handling of other message types, so just throw an error here:
                     self.get_logger().error("UNHANDLED MESSAGE TYPE IN PORT 2")
@@ -218,9 +282,9 @@ class VN100Manager(Node):
         # parse the request
         port = request.port
         try:
-            if port == "imu":
+            if port == "port1":
                 self.ser_port1.write(full_vn_message(request.msg))
-            if port == "kf":
+            if port == "port2":
                 self.ser_port2.write(full_vn_message(request.msg))
         except Exception as e:
             self.get_logger().error(f"Error sending the request! Error: {e}")
@@ -243,9 +307,6 @@ class VN100Manager(Node):
             except KeyboardInterrupt:
                 self.get_logger().warn("KeyboardInterrupt on listening step")
 
-        # After configuring port outputs, start the reading services for both ports
-        self.start_reading_threads()
-
         response.success = True
         response.message = f"VN100 message sent:d {str(request)}."
         return response
@@ -258,8 +319,8 @@ class VN100Manager(Node):
     def start_reading_threads(self):
         #Bring up both threads
         with self.thread_lock:
-            if not self.reading:
-                self.reading = True
+            if not self.ports_active:
+                self.ports_active = True
 
                 if self.port1_thread is None or not self.port1_thread.is_alive():
                     self.port1_thread = threading.Thread(target=self.port1_reader, daemon=True)
@@ -274,14 +335,33 @@ class VN100Manager(Node):
     def stop_reading_threads(self):
         #Bring down both threads
         with self.thread_lock:
-            if self.reading:
-                self.reading = False
+            if self.ports_active:
+                self.ports_active = False
 
                 if self.port1_thread and self.port1_thread.is_alive():
                     self.port1_thread.join(timeout=2.0)
 
                 if self.port2_thread and self.port2_thread.is_alive():
                     self.port2_thread.join(timeout=2.0)
+
+    def estimate_biases(self, request, response):
+        self.estimating_bias = True
+        start_time = time.time()
+        while time.time() - start_time < self.bias_averaging_time:
+            continue
+        self.estimating_bias = False
+        response.success = True
+        response.message = f"Bias Estimate Set. x bias = {self.bias_body_x},  y bias = {self.bias_body_y},  z bias = {self.bias_body_z}"
+        return response
+
+    def toggle_reading_status(self, request, response):
+        if request.data:
+            self.publishing_data = True
+        else:
+            self.publishing_data = False
+        response.success = True
+        response.message = f"Updated Publishing Data to {request.data}"
+        return response
 
 def main(args=None):
     rclpy.init(args=args)

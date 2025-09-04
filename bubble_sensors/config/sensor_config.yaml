@@ -35,3 +35,4 @@ vectornav_manager:
     imu_ang_vel_covariance: 0.01
     imu_orientation_cov: 0.05
     init_kf_orient_cov: 0.01
+    bias_averaging_time: 10.0

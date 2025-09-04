@@ -14,12 +14,12 @@ services:
     security_opt:
       - seccomp:unconfined
       - apparmor:unconfined
-    # volumes:
-    #   - /dev:/dev
-    #   - /run/user/1000:/run/user/1000
-    entrypoint: /bin/bash
-    # devel service based on blue
-  devel:
-    extends: blue
     volumes:
-      - ./:/home/ubuntu/ws_blue/src/blue
+      - /dev:/dev
+      - /run/user/1000:/run/user/1000
+    entrypoint: /bin/bash
+  #   # devel service based on blue
+  # devel:
+  #   extends: blue
+  #   volumes:
+  #     - ./:/home/ubuntu/ws_blue/src/blue
