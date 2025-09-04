@@ -1,3 +1,7 @@
+# Configuration for the Initializer.
+# This defines most of the initial conditions of the robot,
+# and includes some configuration parameters like data type
+# and frequency for each port.
 initializer:
   ros__parameters:
     port1_data_register: 16
@@ -24,6 +28,7 @@ initializer:
 
     gravity: 9.80600 #Zurich Gravity Strength(swiss gravity zones website)
 
+#Configuration for the vectornav_manager node
 vectornav_manager:
   ros__parameters:
     port1: "/dev/ttyAMA4"
@@ -36,3 +41,14 @@ vectornav_manager:
     imu_orientation_cov: 0.05
     init_kf_orient_cov: 0.01
     bias_averaging_time: 10.0
+
+# Configuration for the dvl_a50 node
+dvl_a50:
+  ros__parameters:
+    ip_address: 192.168.194.95
+
+# Configuration for the dvl_message_converter node
+dvl_message_converter:
+  ros__parameters:
+    input_topic: "/dvl/data"
+    output_topic: "/dvl/twist_data"

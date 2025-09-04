@@ -30,18 +30,15 @@ launch:
       exec: dvl_a50_sensor
       output: screen
       param:
-        - name: ip_address
-          value: 192.168.194.95
+        - from: $(find-pkg-share bubble_sensors)/config/sensor_config.yaml
 
   - node:
       pkg: bubble_sensors
       if: $(var use_dvl)
       exec: dvl_message_converter
       param:
-        - name: input_topic
-          value: "/dvl/data"
-        - name: output_topic
-          value: "/dvl/twist_data"
+        - from: $(find-pkg-share bubble_sensors)/config/sensor_config.yaml
+
 
   #Initializer Node:
   - node:
