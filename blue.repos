@@ -30,7 +30,8 @@ repositories:
     url: https://github.com/paagutie/dvl_msgs.git
     version: master
 
-  vectornav:
-    type: git
-    url: https://github.com/dawonn/vectornav.git
-    version: ros2
+  # For the time being, using custom code
+  # vectornav:
+  #   type: git
+  #   url: https://github.com/dawonn/vectornav.git
+  #   version: ros2
