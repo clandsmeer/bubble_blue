@@ -8,12 +8,14 @@ The purpose of this file is to complete the automated initialization of each of 
 on the BlueRov2. It is called via the /initialize service of type std_srvs/srv/Trigger.
 """
 
+import time
 import rclpy
 from dvl_msgs.msg import ConfigCommand
 from geographic_msgs.msg import GeoPointStamped
 from geometry_msgs.msg import PoseWithCovarianceStamped
 from sensor_msgs.msg import Imu
 from rclpy.node import Node
+from rclpy.task import Future
 from std_srvs.srv import Trigger, SetBool
 
 from bubble_sensors.srv import ConfigureVN100
@@ -46,6 +48,7 @@ class Initializer(Node):
 
         self.declare_parameter("gravity", 9.80600) #Zurich Gravitational Acceleration
 
+        self.declare_parameter("correct_gravity", True)
         self.declare_parameter("correct_bias", False) #Whether or not to send the bias estimate message
 
         #Get all the parameters
@@ -71,6 +74,7 @@ class Initializer(Node):
 
         self.gravity = self.get_parameter("gravity").get_parameter_value().double_value
 
+        self.correct_gravity = self.get_parameter("correct_gravity").get_parameter_value().bool_value
         self.correct_bias = self.get_parameter("correct_bias").get_parameter_value().bool_value
 
         # Create the client for the IMU Configuration service
@@ -97,6 +101,15 @@ class Initializer(Node):
         self.init_service = self.create_service(Trigger, "initialize", self.init_service_callback)
         self.get_logger().info("Initializer Started and /configure_vn100 service grabbed. Ready for initialization")
 
+        # Add the variables to be used by the future callbacks to indicate completion
+        self.port1_dataType_set = False
+        self.port1_dataRate_set = False
+        self.port2_dataType_set = False
+        self.port2_dataRate_set = False
+        self.mag_gravity_set = False
+        self.bias_calculated = False
+        self.ports_publishing = False
+
     def init_service_callback(self, request, response):
         #the purpose of this service is to initialize the imu, dvl, and ardusub ek3 output
 
@@ -105,93 +118,94 @@ class Initializer(Node):
         req_port1_dataType = ConfigureVN100.Request()
         req_port1_dataType.port = "port1"
         req_port1_dataType.msg = f"VNWRG,06,{self.port1_data_register},1"#True body-fixed accelerations
-        try:
-            response_port1_dataType = self.config_cli.call(req_port1_dataType)
-            if response_port1_dataType is not None:
-                self.get_logger().info(f'Sent command to set port1 data type. Response: {response_port1_dataType.success}, {response_port1_dataType.message}')
-            else:
-                self.get_logger().error('Failed to set port1 data type')
-        except Exception as e:
-            self.get_logger().error(f"Some error occured when attempting to set port1 data type {e}")
+        future_port1_dataType = self.config_cli.call_async(req_port1_dataType)
+        future_port1_dataType.add_done_callback(self.port1_dataType_callback)
+        t_start = time.time()
+        while not self.port1_dataType_set:
+            t_now = time.time()
+            if t_now - t_start > 10.0:
+                self.get_logger().error("Port 1 Data Type Future Timed Out")
+                break
 
         #port 1 data rate
         req_port1_dataRate = ConfigureVN100.Request()
         req_port1_dataRate.port = "port1"
         req_port1_dataRate.msg = f"VNWRG,07,{self.port1_frequency},1" #50Hz
-        try:
-            response_port1_dataRate = self.config_cli.call(req_port1_dataRate)
-            if response_port1_dataRate is not None:
-                self.get_logger().info(f'Sent command to set port1 data rate. Response: {response_port1_dataRate.success}, {response_port1_dataRate.message}')
-            else:
-                self.get_logger().error('Failed to set port1 data rate')
-        except Exception as e:
-            self.get_logger().error(f"Some error occured when attempting to set port1 data rate {e}")
+        future_port1_dataRate = self.config_cli.call_async(req_port1_dataRate)
+        future_port1_dataRate.add_done_callback(self.port1_dataRate_callback)
+        t_start = time.time()
+        while not self.port1_dataRate_set:
+            t_now = time.time()
+            if t_now - t_start > 10.0:
+                self.get_logger().error("Port 1 Data Rate Future Timed Out")
+                break
 
         #Port 2 data type
         req_port2_dataType = ConfigureVN100.Request()
-        req_port2_dataType.port = "port1"
+        req_port2_dataType.port = "port1" #telling port1 1 to configure port 2
         req_port2_dataType.msg = f"VNWRG,06,{self.port2_data_register},2" #kalman-filterred output
-        try:
-            response_port2_dataType = self.config_cli.call(req_port2_dataType)
-            if response_port2_dataType is not None:
-                self.get_logger().info(f'Sent command to set port2 data type. Response: {response_port2_dataType.success}, {response_port2_dataType.message}')
-            else:
-                self.get_logger().error('Failed to set port2 data type')
-        except Exception as e:
-            self.get_logger().error(f"Some error occured when attempting to set port2 data type{e}")
+        future_port2_dataType = self.config_cli.call_async(req_port2_dataType)
+        future_port2_dataType.add_done_callback(self.port2_dataType_callback)
+        t_start = time.time()
+        while not self.port2_dataType_set:
+            t_now = time.time()
+            if t_now - t_start > 10.0:
+                self.get_logger().error("Port 2 Data Type Future Timed Out")
+                break
 
         #port 2 data rate
         req_port2_dataRate = ConfigureVN100.Request()
-        req_port2_dataRate.port = "port1"
+        req_port2_dataRate.port = "port1" #telling port1 1 to configure port 2
         req_port2_dataRate.msg = f"VNWRG,07,{self.port2_frequency},2"
-        try:
-            response_port2_dataRate = self.config_cli.call(req_port2_dataRate)
-            if response_port2_dataRate is not None:
-                self.get_logger().info(f'Sent command to set port2 data rate. Response: {response_port2_dataRate.success}, {response_port2_dataRate.message}')
-            else:
-                self.get_logger().error('Failed to set port2 data rate')
-        except Exception as e:
-            self.get_logger().error(f"Some error occured when attempting to set port2 data rate {e}")
+        future_port2_dataRate = self.config_cli.call_async(req_port2_dataRate)
+        future_port2_dataRate.add_done_callback(self.port2_dataRate_callback)
+        t_start = time.time()
+        while not self.port2_dataRate_set:
+            t_now = time.time()
+            if t_now - t_start > 10.0:
+                self.get_logger().error("Port 2 Data Rate Future Timed Out")
+                break
 
         #NOTE: Orientation Specification is saved into the IMU itself. Please set this
         #manually using the register 26 if the mounting of the IMU changes.
 
         # set the correct gravity vector, they use a slightly smaller one
-        req_gravity = ConfigureVN100.Request()
-        req_gravity.port = "port1"
-        req_gravity.msg = f"VNWRG,21,{self.mag_ref_x},{self.mag_ref_y},{self.mag_ref_z},0,0,{self.gravity}"
-        try:
-            response_req_gravity = self.config_cli.call(req_gravity)
-            if response_req_gravity is not None:
-                self.get_logger().info(f'Sent command to set mag/gravity values on IMU. Response: {response_req_gravity.success}, {response_req_gravity.message}')
-            else:
-                self.get_logger().error('Failed to send mag/gravity values to IMU')
-        except Exception as e:
-            self.get_logger().error(f"Some error occured when attempting to send gravity/mag settings {e}")
+        if self.correct_gravity:
+            req_gravity = ConfigureVN100.Request()
+            req_gravity.port = "port1"
+            req_gravity.msg = f"VNWRG,21,{self.mag_ref_x},{self.mag_ref_y},{self.mag_ref_z},0,0,{self.gravity}"
+            future_gravity = self.config_cli.call_async(req_gravity)
+            future_gravity.add_done_callback(self.set_gravity_mag_callback)
+            t_start = time.time()
+            while not self.mag_gravity_set:
+                t_now = time.time()
+                if t_now - t_start > 10.0:
+                    self.get_logger().error("Gravity and Mag Future Timed Out")
+                    break
 
         # trigger the bias estimation service, use call() to block the reading process
         if self.correct_bias:
             trigger_bias_est = Trigger.Request()
-            try:
-                response_bias_est = self.bias_cli.call(trigger_bias_est, timeout_sec=60.0)
-                if response_bias_est is not None:
-                    self.get_logger().info(f'Sent command to begin bias estimation process. Response: {response_bias_est.success}, {response_bias_est.message}')
-                else:
-                    self.get_logger().error('Failed to complete bias estimation service')
-            except Exception as e:
-                self.get_logger().error(f"Some error occured when attempting to send bias calc trigger {e}")
+            future_bias = self.bias_cli.call_async(trigger_bias_est)
+            future_bias.add_done_callback(self.bias_estimation_callback)
+            t_start = time.time()
+            while not self.bias_calculated:
+                t_now = time.time()
+                if t_now - t_start > 60.0:
+                    self.get_logger().error("Bias Estimation Future Timed Out")
+                    break
 
         # After the bias estimation service has completed, start the publishing service for the IMU
         publishing_request = SetBool.Request()
         publishing_request.data = True
-        try:
-            response_publishing_request = self.port_publishing_cli.call(publishing_request)
-            if response_publishing_request is not None:
-                self.get_logger().info(f'Sent command to toggle IMU publishing. Response: {response_publishing_request.success}, {response_publishing_request.message}')
-            else:
-                self.get_logger().error('Failed to use IMU toggle publish service')
-        except Exception as e:
-                self.get_logger().error(f"Some error occured when attempting to send IMU toggle publishing {e}")
+        future_publishing = self.port_publishing_cli.call_async(publishing_request)
+        future_publishing.add_done_callback(self.ports_publishing_callback)
+        t_start = time.time()
+        while not self.ports_publishing:
+            t_now = time.time()
+            if t_now - t_start > 10.0:
+                self.get_logger().error("Port Publishing Future Timed Out")
+                break
 
         # Next, send the global/local reference positions
         self.publish_reference_positions()
@@ -238,9 +252,68 @@ class Initializer(Node):
 
         return
 
-    # Update a rolling average
-    def imu_sub_callback(self, msg):
-        return
+    def port1_dataType_callback(self, future : Future):
+        response = future.result()
+        if response is not None:
+            self.get_logger().info(f"Result for Setting Port 1 Data Type: {response.success}, {response.message}")
+            if response.success:
+                self.port1_dataType_set = True
+        else:
+            self.get_logger().info("No Response for Port 1 Data Type.")
+
+    def port1_dataRate_callback(self, future : Future):
+        response = future.result()
+        if response is not None:
+            self.get_logger().info(f"Result for Setting Port 1 Data Rate: {response.success}, {response.message}")
+            if response.success:
+                self.port1_dataRate_set = True
+        else:
+            self.get_logger().info("No Response for Port 1 Data Rate.")
+
+    def port2_dataType_callback(self, future : Future):
+        response = future.result()
+        if response is not None:
+            self.get_logger().info(f"Result for Setting Port 2 Data Type: {response.success}, {response.message}")
+            if response.success:
+                self.port2_dataType_set = True
+        else:
+            self.get_logger().info("No Response for Port 2 Data Type.")
+
+    def port2_dataRate_callback(self, future : Future):
+        response = future.result()
+        if response is not None:
+            self.get_logger().info(f"Result for Setting Port 2 Data Rate: {response.success}, {response.message}")
+            if response.success:
+                self.port2_dataRate_set = True
+        else:
+            self.get_logger().info("No Response for Port 2 Data Rate.")
+
+    def set_gravity_mag_callback(self, future : Future):
+        response = future.result()
+        if response is not None:
+            self.get_logger().info(f"Result for Setting Gravity and Magnetic Ref: {response.success}, {response.message}")
+            if response.success:
+                self.mag_gravity_set = True
+        else:
+            self.get_logger().info("No Response for Setting Gravity and Magnetic Ref.")
+
+    def bias_estimation_callback(self, future : Future):
+        response = future.result()
+        if response is not None:
+            self.get_logger().info(f"Result for Bias Estimation: {response.success}, {response.message}")
+            if response.success:
+                self.bias_calculated = True
+        else:
+            self.get_logger().info("No Response for Bias Estimation.")
+
+    def ports_publishing_callback(self, future : Future):
+        response = future.result()
+        if response is not None:
+            self.get_logger().info(f"Result for Beginning Port Reading: {response.success}, {response.message}")
+            if response.success:
+                self.ports_publishing = True
+        else:
+            self.get_logger().info("No Response for Beginning Port Reading.")
 
 def main(args=None):
     rclpy.init(args=args)

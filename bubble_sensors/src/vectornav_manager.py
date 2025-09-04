@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-File: vectornav_manager v2.0
+File: vectornav_manager v2.1
 Author: Henry Adam
 Date: Aug 18, 2025
 
@@ -88,6 +88,7 @@ class VN100Manager(Node):
 
         # Create service for Triggering Bias estimation process
         self.bias_srv = self.create_service(Trigger, "estimate_bias", self.estimate_biases)
+        self.estimating_bias = False
 
         #Create service for starting and stopping the serial port process
         self.read_srv = self.create_service(SetBool, "set_reading_status", self.toggle_reading_status)
@@ -100,6 +101,8 @@ class VN100Manager(Node):
         self.imu_pub = self.create_publisher(Imu, "/vectornav/Imu_body", 10)
         self.orient_pub = self.create_publisher(PoseWithCovarianceStamped, "/vectornav/filterred_orientation", 10)
 
+        # Variables defining port status
+        self.publishing_data = False
         self.ports_active = False
         self.port1_thread = None
         self.port2_thread = None
@@ -115,8 +118,8 @@ class VN100Manager(Node):
     def port1_reader(self):
         while self.ports_active:
             try:
+                msg = self.ser_port1.readline().decode('ascii', errors='ignore').strip()
                 if self.publishing_data:
-                    msg = self.ser_port1.readline().decode('ascii', errors='ignore').strip()
                     if not msg:
                         #empty messages, skip this
                         continue
@@ -186,7 +189,6 @@ class VN100Manager(Node):
                         self.get_logger().error("UNHANDLED MESSAGE TYPE IN PORT 1")
 
                 elif self.estimating_bias:
-                    msg = self.ser_port1.readline().decode('ascii', errors='ignore').strip()
                     if not msg:
                         #empty messages, skip this
                         continue
@@ -205,7 +207,6 @@ class VN100Manager(Node):
                         self.bias_body_y = average_update(self.bias_body_y, self.k, y)
                         self.bias_body_z = average_update(self.bias_body_z, self.k, z)
                         self.k+=1
-
                     else:
                         self.get_logger().warn("BIAS ESTIMATE CALLED BEFORE IMU OUTPUTTING BODY-FIXED COORDINATES")
 
@@ -289,7 +290,7 @@ class VN100Manager(Node):
         try:
             if port == "port1":
                 self.ser_port1.write(full_vn_message(request.msg))
-            if port == "port2":
+            elif port == "port2":
                 self.ser_port2.write(full_vn_message(request.msg))
         except Exception as e:
             self.get_logger().error(f"Error sending the request! Error: {e}")
@@ -314,6 +315,7 @@ class VN100Manager(Node):
 
         response.success = True
         response.message = f"VN100 message sent:d {str(request)}."
+        self.get_logger().info("Handle Port Finished Correctly. Sending Response")
         return response
 
     def request_covariance(self):

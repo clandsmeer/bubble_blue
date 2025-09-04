@@ -26,8 +26,9 @@ initializer:
     mag_ref_y: 0.03
     mag_ref_z: 0.89
 
-    gravity: 9.80600 #Zurich Gravity Strength(swiss gravity zones website)
+    gravity: -9.80600 #Zurich Gravity Strength(swiss gravity zones website)
 
+    correct_gravity: true
     correct_bias: false
 
 #Configuration for the vectornav_manager node
