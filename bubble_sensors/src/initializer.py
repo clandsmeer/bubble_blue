@@ -45,6 +45,9 @@ class Initializer(Node):
         self.declare_parameter("mag_ref_z", 0.89)
 
         self.declare_parameter("gravity", 9.80600) #Zurich Gravitational Acceleration
+
+        self.declare_parameter("correct_bias", False) #Whether or not to send the bias estimate message
+
         #Get all the parameters
         self.port1_data_register = self.get_parameter("port1_data_register").get_parameter_value().integer_value
         self.port1_frequency = self.get_parameter("port1_frequency").get_parameter_value().integer_value
@@ -68,6 +71,8 @@ class Initializer(Node):
 
         self.gravity = self.get_parameter("gravity").get_parameter_value().double_value
 
+        self.correct_bias = self.get_parameter("correct_bias").get_parameter_value().bool_value
+
         # Create the client for the IMU Configuration service
         self.config_cli = self.create_client(ConfigureVN100, '/configure_vn100')
         while not self.config_cli.wait_for_service(timeout_sec=5.0):
@@ -79,7 +84,7 @@ class Initializer(Node):
             self.get_logger().info('Waiting for /estimate_bias service...')
 
         # Create the client for the Port Publishing Service
-        self.port_publishing_cli = self.create_client(Trigger, '/set_reading_status')
+        self.port_publishing_cli = self.create_client(SetBool, '/set_reading_status')
         while not self.port_publishing_cli.wait_for_service(timeout_sec=5.0):
             self.get_logger().info('Waiting for /set_reading_status service...')
 
@@ -87,11 +92,6 @@ class Initializer(Node):
         self.global_pub = self.create_publisher(GeoPointStamped, '/mavros/global_position/set_gp_origin', 10)
         self.local_pub = self.create_publisher(PoseWithCovarianceStamped, '/mavros/local_position/pose_cov', 10)
         self.dvl_publisher = self.create_publisher(ConfigCommand, '/dvl/config/command', 10)
-
-        # Subscribe to the Imu_body topic to account for bias(simple averaging)
-        self.Imu_sub = self.create_subscription(Imu, "/vectornav/Imu_body", self.imu_sub_callback, 10)
-
-        # create variables for rolling average
 
         #create the triggerred service that initailizes the system.
         self.init_service = self.create_service(Trigger, "initialize", self.init_service_callback)
@@ -101,29 +101,57 @@ class Initializer(Node):
         #the purpose of this service is to initialize the imu, dvl, and ardusub ek3 output
 
         #first, send the imu the command to output the correct data from the correct ports
+        #port 1 data type
         req_port1_dataType = ConfigureVN100.Request()
         req_port1_dataType.port = "port1"
         req_port1_dataType.msg = f"VNWRG,06,{self.port1_data_register},1"#True body-fixed accelerations
-        response_port1_dataType = self.config_cli.call_async(req_port1_dataType)
-        self.get_logger().info(f'Sent configuration command for port 1 output data type. Response: {response_port1_dataType.result()}')
+        try:
+            response_port1_dataType = self.config_cli.call(req_port1_dataType)
+            if response_port1_dataType is not None:
+                self.get_logger().info(f'Sent command to set port1 data type. Response: {response_port1_dataType.success}, {response_port1_dataType.message}')
+            else:
+                self.get_logger().error('Failed to set port1 data type')
+        except Exception as e:
+            self.get_logger().error(f"Some error occured when attempting to set port1 data type {e}")
 
+        #port 1 data rate
         req_port1_dataRate = ConfigureVN100.Request()
         req_port1_dataRate.port = "port1"
         req_port1_dataRate.msg = f"VNWRG,07,{self.port1_frequency},1" #50Hz
-        response_port1_dataRate = self.config_cli.call_async(req_port1_dataRate)
-        self.get_logger().info(f'Sent configuration command for port 1 output data rate. Response: {response_port1_dataRate.result()}')
+        try:
+            response_port1_dataRate = self.config_cli.call(req_port1_dataRate)
+            if response_port1_dataRate is not None:
+                self.get_logger().info(f'Sent command to set port1 data rate. Response: {response_port1_dataRate.success}, {response_port1_dataRate.message}')
+            else:
+                self.get_logger().error('Failed to set port1 data rate')
+        except Exception as e:
+            self.get_logger().error(f"Some error occured when attempting to set port1 data rate {e}")
 
+        #Port 2 data type
         req_port2_dataType = ConfigureVN100.Request()
         req_port2_dataType.port = "port1"
         req_port2_dataType.msg = f"VNWRG,06,{self.port2_data_register},2" #kalman-filterred output
-        response_port2_dataType = self.config_cli.call_async(req_port2_dataType)
-        self.get_logger().info(f'Sent configuration command for port 2 output data type. Response: {response_port2_dataType.result()}')
+        try:
+            response_port2_dataType = self.config_cli.call(req_port2_dataType)
+            if response_port2_dataType is not None:
+                self.get_logger().info(f'Sent command to set port2 data type. Response: {response_port2_dataType.success}, {response_port2_dataType.message}')
+            else:
+                self.get_logger().error('Failed to set port2 data type')
+        except Exception as e:
+            self.get_logger().error(f"Some error occured when attempting to set port2 data type{e}")
 
+        #port 2 data rate
         req_port2_dataRate = ConfigureVN100.Request()
         req_port2_dataRate.port = "port1"
         req_port2_dataRate.msg = f"VNWRG,07,{self.port2_frequency},2"
-        response_port2_dataRate = self.config_cli.call_async(req_port2_dataRate)
-        self.get_logger().info(f'Sent configuration command for port 2 output data rate. Response: {response_port2_dataRate.result()}')
+        try:
+            response_port2_dataRate = self.config_cli.call(req_port2_dataRate)
+            if response_port2_dataRate is not None:
+                self.get_logger().info(f'Sent command to set port2 data rate. Response: {response_port2_dataRate.success}, {response_port2_dataRate.message}')
+            else:
+                self.get_logger().error('Failed to set port2 data rate')
+        except Exception as e:
+            self.get_logger().error(f"Some error occured when attempting to set port2 data rate {e}")
 
         #NOTE: Orientation Specification is saved into the IMU itself. Please set this
         #manually using the register 26 if the mounting of the IMU changes.
@@ -132,22 +160,38 @@ class Initializer(Node):
         req_gravity = ConfigureVN100.Request()
         req_gravity.port = "port1"
         req_gravity.msg = f"VNWRG,21,{self.mag_ref_x},{self.mag_ref_y},{self.mag_ref_z},0,0,{self.gravity}"
-        response_req_gravity = self.config_cli.call_async(req_gravity)
-        self.get_logger().info(f'Sent configuration command for IMU gravity. Response: {response_req_gravity.result()}')
+        try:
+            response_req_gravity = self.config_cli.call(req_gravity)
+            if response_req_gravity is not None:
+                self.get_logger().info(f'Sent command to set mag/gravity values on IMU. Response: {response_req_gravity.success}, {response_req_gravity.message}')
+            else:
+                self.get_logger().error('Failed to send mag/gravity values to IMU')
+        except Exception as e:
+            self.get_logger().error(f"Some error occured when attempting to send gravity/mag settings {e}")
 
         # trigger the bias estimation service, use call() to block the reading process
-        trigger_bias_est = Trigger.Request()
-        response_bias_est = self.bias_cli.call(trigger_bias_est)
-        if response_bias_est is not None:
-            self.get_logger().info(f'Sent command to begin bias estimation process. Response: {response_bias_est.result()}')
-        else:
-            self.get_logger().error('Failed to complete bias estimation service')
+        if self.correct_bias:
+            trigger_bias_est = Trigger.Request()
+            try:
+                response_bias_est = self.bias_cli.call(trigger_bias_est, timeout_sec=60.0)
+                if response_bias_est is not None:
+                    self.get_logger().info(f'Sent command to begin bias estimation process. Response: {response_bias_est.success}, {response_bias_est.message}')
+                else:
+                    self.get_logger().error('Failed to complete bias estimation service')
+            except Exception as e:
+                self.get_logger().error(f"Some error occured when attempting to send bias calc trigger {e}")
 
         # After the bias estimation service has completed, start the publishing service for the IMU
         publishing_request = SetBool.Request()
         publishing_request.data = True
-        response_publishing_request = self.port_publishing_cli.call_async(publishing_request)
-        self.get_logger().info(f'Sent command to begin bias estimation process. Response: {response_publishing_request.result()}')
+        try:
+            response_publishing_request = self.port_publishing_cli.call(publishing_request)
+            if response_publishing_request is not None:
+                self.get_logger().info(f'Sent command to toggle IMU publishing. Response: {response_publishing_request.success}, {response_publishing_request.message}')
+            else:
+                self.get_logger().error('Failed to use IMU toggle publish service')
+        except Exception as e:
+                self.get_logger().error(f"Some error occured when attempting to send IMU toggle publishing {e}")
 
         # Next, send the global/local reference positions
         self.publish_reference_positions()

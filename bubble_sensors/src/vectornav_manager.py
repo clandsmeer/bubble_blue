@@ -108,6 +108,10 @@ class VN100Manager(Node):
         #timer for requesting the covariance matrix
         self.create_timer(1, self.request_covariance)
 
+        #Start the reading threads at the beginning
+        self.start_reading_threads()
+        self.get_logger().info("Started port1 and port2 reading threads")
+
     def port1_reader(self):
         while self.ports_active:
             try:
@@ -280,6 +284,7 @@ class VN100Manager(Node):
 
     def handle_configure(self, request, response):
         # parse the request
+        self.get_logger().info(f"Sending message {request.msg} to port {request.port}")
         port = request.port
         try:
             if port == "port1":
@@ -345,6 +350,7 @@ class VN100Manager(Node):
                     self.port2_thread.join(timeout=2.0)
 
     def estimate_biases(self, request, response):
+        self.get_logger().info("Received Command to Estimate Bias")
         self.estimating_bias = True
         start_time = time.time()
         while time.time() - start_time < self.bias_averaging_time:
@@ -355,6 +361,7 @@ class VN100Manager(Node):
         return response
 
     def toggle_reading_status(self, request, response):
+        self.get_logger().info("Received Command to Toggle Reading Status")
         if request.data:
             self.publishing_data = True
         else:

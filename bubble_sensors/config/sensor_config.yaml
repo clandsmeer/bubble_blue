@@ -28,6 +28,8 @@ initializer:
 
     gravity: 9.80600 #Zurich Gravity Strength(swiss gravity zones website)
 
+    correct_bias: false
+
 #Configuration for the vectornav_manager node
 vectornav_manager:
   ros__parameters:
