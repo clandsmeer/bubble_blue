@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-File: initializer v1.0
+File: initializer v2.0
 Author: Henry Adam
 Date: Aug 19, 2025
 

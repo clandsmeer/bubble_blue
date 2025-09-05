@@ -5,10 +5,10 @@
 initializer:
   ros__parameters:
     port1_data_register: 16
-    port1_frequency: 50
+    port1_frequency: 20
 
     port2_data_register: 254
-    port2_frequency: 50
+    port2_frequency: 20
 
     gp_origin_lat: 47.3769 #Zurich GPS coordinates
     gp_origin_long: 8.5417
@@ -29,7 +29,7 @@ initializer:
     gravity: -9.80600 #Zurich Gravity Strength(swiss gravity zones website)
 
     correct_gravity: true
-    correct_bias: false
+    correct_bias: true
 
 #Configuration for the vectornav_manager node
 vectornav_manager:
@@ -39,11 +39,11 @@ vectornav_manager:
     baudrate: 115200
     print_output: false
     read_time: 2.0
-    imu_accel_cov: 0.05
-    imu_ang_vel_covariance: 0.01
+    imu_accel_cov: 0.5
+    imu_ang_vel_covariance: 0.1
     imu_orientation_cov: 0.05
     init_kf_orient_cov: 0.01
-    bias_averaging_time: 10.0
+    bias_averaging_time: 45.0
 
 # Configuration for the dvl_a50 node
 dvl_a50:

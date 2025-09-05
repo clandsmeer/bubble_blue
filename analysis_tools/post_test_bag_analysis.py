@@ -222,6 +222,18 @@ class Bag_Analyzer():
         #Before plotting, actually read the data
         self.read_rosbag2_mcap()
 
+        #initial step, get start time:
+        start_times = []
+        for topic in self.data:
+            if self.data[topic]['timestamps']:
+                start_times.append(min(self.data[topic]['timestamps']))
+
+        if start_times:
+            time0 = min(start_times)
+            print(f"Program start time: {time0} seconds")
+        else:
+            print("No timestamp data found")
+
         # First plot. Pose:
         fig, axes = plt.subplots(3, 1, figsize=(12, 10))
         fig.suptitle('Position x,y,z for all topics')
@@ -231,7 +243,7 @@ class Bag_Analyzer():
             for topic in self.topic_list:
                 if self.topic_dict[topic]["plot"][i]:
                     axes[i].plot(
-                        self.data[topic]['timestamps'],
+                        np.array(self.data[topic]['timestamps']) - time0,
                         self.data[topic][var],
                         label=f'{topic}')
             axes[i].set_xlabel('Time [s]')
@@ -239,6 +251,7 @@ class Bag_Analyzer():
             axes[i].set_title(f'Position: {var}')
             axes[i].grid(True)
             axes[i].legend()
+        plt.tight_layout()
 
         # Second Plot Group. Orientation:
         fig, axes = plt.subplots(3, 1, figsize=(12, 10))
@@ -249,7 +262,7 @@ class Bag_Analyzer():
             for topic in self.topic_list:
                 if self.topic_dict[topic]["plot"][i + 3]:
                     axes[i].plot(
-                        self.data[topic]['timestamps'],
+                        np.array(self.data[topic]['timestamps']) - time0,
                         self.data[topic][var],
                         label=f'{topic}')
             axes[i].set_xlabel('Time [s]')
@@ -257,6 +270,7 @@ class Bag_Analyzer():
             axes[i].set_title(f'Orientation: {var}')
             axes[i].grid(True)
             axes[i].legend()
+        plt.tight_layout()
 
         # Third Plot Group: Angular Velocity
         fig, axes = plt.subplots(3, 1, figsize=(12, 10))
@@ -268,7 +282,7 @@ class Bag_Analyzer():
                 if self.topic_dict[topic]["plot"][i+9]:
                     try:
                         axes[i].plot(
-                            self.data[topic]['timestamps'],
+                            np.array(self.data[topic]['timestamps']) - time0,
                             self.data[topic][var],
                             label=f'{topic}, avg value: {np.mean(self.data[topic][var])}',
                         )
@@ -280,6 +294,7 @@ class Bag_Analyzer():
             axes[i].set_title(f'Angular Velocity: {var}')
             axes[i].grid(True)
             axes[i].legend()
+        plt.tight_layout()
 
         # Fourth Plot Group: Linear Velocity
         fig, axes = plt.subplots(3, 1, figsize=(12, 10))
@@ -290,7 +305,7 @@ class Bag_Analyzer():
             for topic in self.topic_list:
                 if self.topic_dict[topic]["plot"][i+6]:
                     axes[i].plot(
-                        self.data[topic]['timestamps'],
+                        np.array(self.data[topic]['timestamps']) - time0,
                         self.data[topic][var],
                         label=f'{topic}',
                     )
@@ -299,6 +314,7 @@ class Bag_Analyzer():
             axes[i].set_title(f'Linear Velocity: {var}')
             axes[i].grid(True)
             axes[i].legend()
+        plt.tight_layout()
 
         # Fifth Plot Group: Acceleration
         fig, axes = plt.subplots(3, 1, figsize=(12, 10))
@@ -309,7 +325,7 @@ class Bag_Analyzer():
             for topic in self.topic_list:
                 if self.topic_dict[topic]["plot"][i+12]:
                     axes[i].plot(
-                        self.data[topic]['timestamps'],
+                        np.array(self.data[topic]['timestamps']) - time0,
                         self.data[topic][var],
                         label=f'{topic}, avg value: {np.mean(self.data[topic][var])}',
                     )
@@ -331,6 +347,7 @@ class Bag_Analyzer():
         averages_z = [np.mean(segment) for segment in splits_z]
         print(f"Average for each of the 10 segments of z:\n {np.round(averages_z,6) }\n\n")
 
+        plt.tight_layout()
         plt.show()
 
 if __name__ == '__main__':

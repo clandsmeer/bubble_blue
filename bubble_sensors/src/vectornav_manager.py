@@ -17,7 +17,7 @@ import serial
 from geometry_msgs.msg import PoseWithCovarianceStamped
 from rclpy.node import Node
 from sensor_msgs.msg import Imu
-from std_srvs.srv import Trigger, SetBool
+from std_srvs.srv import SetBool, Trigger
 
 from bubble_sensors.srv import ConfigureVN100
 
@@ -220,64 +220,65 @@ class VN100Manager(Node):
         while self.ports_active:
             try:
                 msg = self.ser_port2.readline().decode('ascii', errors='ignore').strip()
-                if not msg:
-                    #empty messages
-                    continue
-                parsed_msg = msg.split("*")[0].split(",")
-                msg_type = parsed_msg[0]
-                ekf_message = PoseWithCovarianceStamped()
-                # TODO: Add message type handling
-                # For now, assuming port 2 has Kalman-Filterred Data
-                if msg_type == "$VNSTV":
-                    ekf_message.pose.pose.orientation.x = float(parsed_msg[1])
-                    ekf_message.pose.pose.orientation.y = float(parsed_msg[2])
-                    ekf_message.pose.pose.orientation.z = float(parsed_msg[3])
-                    ekf_message.pose.pose.orientation.w = float(parsed_msg[4])
+                if self.publishing_data:
+                    if not msg:
+                        #empty messages
+                        continue
+                    parsed_msg = msg.split("*")[0].split(",")
+                    msg_type = parsed_msg[0]
+                    ekf_message = PoseWithCovarianceStamped()
+                    # TODO: Add message type handling
+                    # For now, assuming port 2 has Kalman-Filterred Data
+                    if msg_type == "$VNSTV":
+                        ekf_message.pose.pose.orientation.x = float(parsed_msg[1])
+                        ekf_message.pose.pose.orientation.y = float(parsed_msg[2])
+                        ekf_message.pose.pose.orientation.z = float(parsed_msg[3])
+                        ekf_message.pose.pose.orientation.w = float(parsed_msg[4])
 
-                    # For orientation, give example covariance
-                    # TODO: Replace these with periodically sampled covariances from the vn100
-                    ekf_message.pose.covariance[21] = self.orient_x_cov
-                    ekf_message.pose.covariance[28] = self.orient_y_cov
-                    ekf_message.pose.covariance[35] = self.orient_z_cov
+                        # For orientation, give example covariance
+                        # TODO: Replace these with periodically sampled covariances from the vn100
+                        ekf_message.pose.covariance[21] = self.orient_x_cov
+                        ekf_message.pose.covariance[28] = self.orient_y_cov
+                        ekf_message.pose.covariance[35] = self.orient_z_cov
 
 
-                    # for pose.pose.position, indicate that they are not to be included
-                    ekf_message.pose.covariance[0] = -1
-                    ekf_message.pose.covariance[7] = -1
-                    ekf_message.pose.covariance[14] = -1
+                        # for pose.pose.position, indicate that they are not to be included
+                        ekf_message.pose.covariance[0] = -1
+                        ekf_message.pose.covariance[7] = -1
+                        ekf_message.pose.covariance[14] = -1
 
-                    # create the header for the message
-                    ekf_message.header.frame_id = "map_ned" #publishes the
-                    ekf_message.header.stamp = self.get_clock().now().to_msg()
+                        # create the header for the message
+                        ekf_message.header.frame_id = "map_ned" #publishes the
+                        ekf_message.header.stamp = self.get_clock().now().to_msg()
 
-                    # actually publish the message
-                    self.orient_pub.publish(ekf_message)
+                        # actually publish the message
+                        self.orient_pub.publish(ekf_message)
 
-                elif msg_type == "$VNERR":
-                    # there is some error in the vn100, print it to the logger
-                    self.get_logger().error(f"Error code {parsed_msg[1]} in vn100 node")
+                    elif msg_type == "$VNERR":
+                        # there is some error in the vn100, print it to the logger
+                        self.get_logger().error(f"Error code {parsed_msg[1]} in vn100 node")
 
-                elif msg_type == "$VNCOV":
-                    self.orient_x_cov = float(parsed_msg[1])
-                    self.orient_y_cov = float(parsed_msg[2])
-                    self.orient_z_cov = float(parsed_msg[3])
-                    self.get_logger().info(f"Orientation covariance is [{self.orient_x_cov}, {self.orient_y_cov}, {self.orient_z_cov}]")
+                    elif msg_type == "$VNCOV":
+                        self.orient_x_cov = float(parsed_msg[1])
+                        self.orient_y_cov = float(parsed_msg[2])
+                        self.orient_z_cov = float(parsed_msg[3])
+                        self.get_logger().info(f"Orientation covariance is [{self.orient_x_cov}, {self.orient_y_cov}, {self.orient_z_cov}]")
 
-                elif msg_type == "$VNRRG" and int(parsed_msg[1]) == 254:
-                    # this is the read register response for the covariance, read it the same as above
-                    self.orient_x_cov = float(parsed_msg[2])
-                    self.orient_y_cov = float(parsed_msg[3])
-                    self.orient_z_cov = float(parsed_msg[4])
+                    elif msg_type == "$VNRRG" and int(parsed_msg[1]) == 254:
+                        # this is the read register response for the covariance, read it the same as above
+                        self.orient_x_cov = float(parsed_msg[2])
+                        self.orient_y_cov = float(parsed_msg[3])
+                        self.orient_z_cov = float(parsed_msg[4])
 
-                elif msg_type == "$VNYMR":
-                    # This is the default, so don't worry unless the port expects to be
-                    #publishing data
-                    if self.publishing_data:
-                        self.get_logger().warn("Port 2 should be publishing data, but output is still default")
+                    elif msg_type == "$VNYMR":
+                        # This is the default, so don't worry unless the port expects to be
+                        #publishing data
+                        if self.publishing_data:
+                            self.get_logger().warn("Port 2 should be publishing data, but output is still default")
 
-                else:
-                    #for now, there is no handling of other message types, so just throw an error here:
-                    self.get_logger().error("UNHANDLED MESSAGE TYPE IN PORT 2")
+                    else:
+                        #for now, there is no handling of other message types, so just throw an error here:
+                        self.get_logger().error("UNHANDLED MESSAGE TYPE IN PORT 2")
             except Exception as e:
                     self.get_logger().error(f"Error in Port 2: {e}")
         self.get_logger().info("Serial Port 2 Closing")
