@@ -56,41 +56,32 @@ launch:
         - name: input_topic
           value: "/model/bluerov2/odometry"
         - name: output_topic
-          value: "/dvl/velocity"
+          value: "/dvl/twist_data"
         - name: use_sim_time
           value: true
 
-  - node:
-      pkg: bubble_sensors
-      if: $(var use_imu)
-      exec: vectornav_imu
-      param:
-        - name: accel_noise_density_mg
-          value: 0.14
-        - name: gyro_noise_density_deg
-          value: 0.0035
-        - name: sample_rate
-          value: 400
-        - name: accel_bias_stability_mghr
-          value: 0.04
-        - name: gyro_bias_stability_deghr
-          value: 10.0
-        - name: resolution
-          value: 0.00001
-        - name: input_topic
-          value: "/model/bluerov2/odometry"
-        - name: output_topic
-          value: "/vn100/imu"
-        - name: use_sim_time
-          value: true
-
+  #VECTORNAV NODE HAS BEEN MOVED TO A GAZEBO SENSOR PLACED ON THE SIMULATED ROBOT,
+  #Use ros_gz_bridge to convert the gazebo Imu messages to ros2
   - node:
       pkg: ros_gz_bridge
       exec: parameter_bridge
-      args: /vn100/gz_data@sensor_msgs/msg/Imu[gz.msgs.IMU
+      args: /vectornav/Imu_body@sensor_msgs/msg/Imu[gz.msgs.IMU
       param:
         - name: use_sim_time
           value: true
+
+  # Define the transformations from the base link into the dvl and imu frames
+  - node:
+      pkg: tf2_ros
+      exec: static_transform_publisher
+      name: base_link_to_dvl
+      args: --x -0.15 --y 0.0 --z -0.12 --roll 0.0 --pitch 0.0 --yaw 0.0 --frame-id base_link_fsd --child-frame-id dvl_a50
+
+  - node:
+      pkg: tf2_ros
+      exec: static_transform_publisher
+      name: base_link_to_vn100
+      args: --x 0.02 --y 0.0 --z -0.05 --roll 0.0 --pitch 0.0 --yaw 0.0 --frame-id base_link_fsd --child-frame-id vectornav
 
   - include:
       if: $(var use_ekf)

@@ -5,7 +5,8 @@
     <!-- Import IMU sensor -->
     <xacro:include filename="$(find blue_description)/description/vn100/urdf.xacro" />
     <xacro:imu_urdf prefix="$(arg prefix)" parent="$(arg prefix)base_link">
-      <origin rpy="0 0 0" xyz="0.0 0.0 0.1" />
+      <!-- Should output body-fixed measurements(NED)-->
+      <origin rpy="3.1415 0 0" xyz="0.0 0.0 0.1" />
     </xacro:imu_urdf>
 
     <!-- Import DVL sensor -->
@@ -17,7 +18,8 @@
     <!-- Add Gazebo sensor plugins if in simulation -->
     <xacro:if value="$(arg use_sim)">
       <xacro:include filename="$(find blue_description)/description/vn100/gazebo.xacro" />
-      <xacro:imu_gazebo reference="$(arg prefix)imu_link" topic="/vn100/gz_data" frame_id="imu_link" />
+      <xacro:imu_gazebo reference="$(arg prefix)imu_link" topic="/vectornav/Imu_body"
+        frame_id="vectornav" />
 
       <xacro:include filename="$(find blue_description)/description/dvl/gazebo.xacro" />
       <xacro:dvl_gazebo reference="$(arg prefix)dvl_link" topic="/dvl/data_test" />
