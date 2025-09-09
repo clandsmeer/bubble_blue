@@ -9,7 +9,10 @@ on:
 
 env:
   CLANG_TIDY: true
-  UPSTREAM_WORKSPACE: blue.repos
+  BEFORE_TARGET_TEST_EMBED: |
+            cd $BASEDIR/upstream_ws
+            vcs import src < $TARGET_WS/src/blue.repos
+            cd $BASEDIR/upstream_ws && colcon build --packages-up-to dvl_msgs
 
 jobs:
   test-implementation:
