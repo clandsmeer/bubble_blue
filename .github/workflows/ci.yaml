@@ -9,6 +9,7 @@ on:
 
 env:
   CLANG_TIDY: true
+  DOCKER_IMAGE: ros:jazzy-ros-base
   UPSTREAM_WORKSPACE: blue.repos
 
 jobs:
