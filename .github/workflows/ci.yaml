@@ -9,6 +9,7 @@ on:
 
 env:
   CLANG_TIDY: true
+  UPSTREAM_WORKSPACE: blue.repos
 
 jobs:
   test-implementation:
