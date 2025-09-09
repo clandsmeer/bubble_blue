@@ -25,3 +25,4 @@ rosbag2*
 ROS2BAG*
 *.mcap
 metadata.yaml
+bags

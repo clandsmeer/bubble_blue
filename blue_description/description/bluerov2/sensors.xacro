@@ -18,7 +18,7 @@
     <!-- Add Gazebo sensor plugins if in simulation -->
     <xacro:if value="$(arg use_sim)">
       <xacro:include filename="$(find blue_description)/description/vn100/gazebo.xacro" />
-      <xacro:imu_gazebo reference="$(arg prefix)imu_link" topic="/vectornav/Imu_body"
+      <xacro:imu_gazebo reference="$(arg prefix)imu_link" topic="/vectornav/Imu_raw"
         frame_id="vectornav" />
 
       <xacro:include filename="$(find blue_description)/description/dvl/gazebo.xacro" />

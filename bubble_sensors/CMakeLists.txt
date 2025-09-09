@@ -30,11 +30,11 @@ find_package(rosidl_default_generators REQUIRED)
 # Add the executable and target
 add_executable(generic_sensor_publisher src/generic_sensor.cpp)
 add_executable(performance_dvl src/waterlinked_performance_dvl.cpp)
-add_executable(simulated_imu src/simulated_imu.cpp)
+add_executable(sim_imu_message_converter src/sim_imu_message_converter.cpp)
 add_executable(dvl_message_converter src/dvl_message_converter.cpp)
 ament_target_dependencies(generic_sensor_publisher rclcpp nav_msgs)
 ament_target_dependencies(performance_dvl rclcpp nav_msgs geometry_msgs tf2 tf2_ros tf2_geometry_msgs)
-ament_target_dependencies(simulated_imu rclcpp nav_msgs sensor_msgs tf2 tf2_ros tf2_geometry_msgs)
+ament_target_dependencies(sim_imu_message_converter rclcpp nav_msgs sensor_msgs tf2 tf2_ros tf2_geometry_msgs)
 ament_target_dependencies(dvl_message_converter rclcpp geometry_msgs dvl_msgs)
 
 add_library(mavros_sensor_plugin SHARED src/mavros_sensor_plugin.cpp)
@@ -59,7 +59,7 @@ ament_target_dependencies(mavros_sensor_plugin
 # Tells mavros where to look for mavros plugins belonging to bubble_sensors
 pluginlib_export_plugin_description_file(mavros mavros_plugins.xml)
 
-install(TARGETS generic_sensor_publisher performance_dvl simulated_imu mavros_sensor_plugin dvl_message_converter
+install(TARGETS generic_sensor_publisher performance_dvl sim_imu_message_converter mavros_sensor_plugin dvl_message_converter
   EXPORT export_${PROJECT_NAME}
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib

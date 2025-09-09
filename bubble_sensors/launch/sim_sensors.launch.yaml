@@ -10,7 +10,7 @@ launch:
 
   - arg:
       name: use_imu
-      default: "false"
+      default: "true"
 
   - arg:
       name: use_ekf
@@ -65,10 +65,24 @@ launch:
   - node:
       pkg: ros_gz_bridge
       exec: parameter_bridge
-      args: /vectornav/Imu_body@sensor_msgs/msg/Imu[gz.msgs.IMU
+      args: /vectornav/Imu_raw@sensor_msgs/msg/Imu[gz.msgs.IMU
       param:
         - name: use_sim_time
           value: true
+  # Then launch the node to convert these messages to the same as the real life robot
+  - node:
+      pkg: bubble_sensors
+      exec: sim_imu_message_converter
+      if: $(var use_imu)
+      param:
+        - name: "input_topic"
+          value: "/vectornav/Imu_raw"
+        - name: "output_topic_accel"
+          value: "/vectornav/Imu_body"
+        - name: "output_topic_orient"
+          value: "/vectornav/filtered_orientation"
+        - name: "gravity_strength"
+          value: 9.8
 
   # Define the transformations from the base link into the dvl and imu frames
   - node:
@@ -85,4 +99,4 @@ launch:
 
   - include:
       if: $(var use_ekf)
-      file: $(find-pkg-share bubble_sensors)/launch/sim_ekf.launch.py
+      file: $(find-pkg-share bubble_sensors)/launch/ekf.launch.py
