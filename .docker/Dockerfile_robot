@@ -125,7 +125,7 @@ RUN git clone -b ${MAVROS_RELEASE} https://github.com/mavlink/mavros.git \
 RUN git clone -b release/jazzy/mavlink https://github.com/ros2-gbp/mavlink-gbp-release.git mavlink \
     && cd mavlink \
     && git checkout dfa34b2
-    
+
 WORKDIR $USER_WORKSPACE
 USER root
 RUN apt-get -q update \
