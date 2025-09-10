@@ -1,31 +1,32 @@
 #!/usr/bin/env python3
-'''
-File: initializer v2.0
+"""
+File: initializer v2.0.
+
 Author: Henry Adam
 Date: Aug 19, 2025
 
 The purpose of this file is to complete the automated initialization of each
 of the sensos on the BlueRov2. It is called via the /initialize service of type
 std_srvs/srv/Trigger.
-'''
+"""
 
 import time
-import rclpy
+
+from bubble_sensors.srv import ConfigureVN100
 from dvl_msgs.msg import ConfigCommand
 from geographic_msgs.msg import GeoPointStamped
 from geometry_msgs.msg import PoseWithCovarianceStamped
+import rclpy
 from rclpy.node import Node
 from rclpy.task import Future
-from std_srvs.srv import Trigger, SetBool
-
-from bubble_sensors.srv import ConfigureVN100
+from std_srvs.srv import SetBool, Trigger
 
 
 class Initializer(Node):
     def __init__(self):
         super().__init__('initializer')
 
-        #import all the ros parameters
+        # import all the ros parameters
         self.declare_parameter('port1_data_register', 16)
         self.declare_parameter('port1_frequency', 50)
 
@@ -45,7 +46,7 @@ class Initializer(Node):
                                 0.0, 0.0, -1.0,
                                 0.0, 1.0, 0.0])
 
-        self.declare_parameter('mag_ref_x', 0.22) #Zurich Magnetic Field
+        self.declare_parameter('mag_ref_x', 0.22)  # Zurich Magnetic Field
         self.declare_parameter('mag_ref_y', 0.03)
         self.declare_parameter('mag_ref_z', 0.89)
 
@@ -147,15 +148,15 @@ class Initializer(Node):
         self.ports_publishing = False
 
     def init_service_callback(self, request, response):
-        #the purpose of this service is to initialize
-        #the imu, dvl, and ardusub ek3 output
+        # the purpose of this service is to initialize
+        # the imu, dvl, and ardusub ek3 output
 
-        #first, send the imu the command to
+        # first, send the imu the command to
         # output the correct data from the correct ports
-        #port 1 data type
+        # port 1 data type
         req_port1_dataType = ConfigureVN100.Request()
         req_port1_dataType.port = 'port1'
-        #True body-fixed accelerations
+        # True body-fixed accelerations
         req_port1_dataType.msg = f'VNWRG,06,{self.port1_data_register},1'
         future_port1_dataType = self.config_cli.call_async(req_port1_dataType)
         future_port1_dataType.add_done_callback(self.port1_dataType_callback)
@@ -166,10 +167,10 @@ class Initializer(Node):
                 self.get_logger().error('Port 1 Data Type Future Timed Out')
                 break
 
-        #port 1 data rate
+        # port 1 data rate
         req_port1_dataRate = ConfigureVN100.Request()
         req_port1_dataRate.port = 'port1'
-        req_port1_dataRate.msg = f'VNWRG,07,{self.port1_frequency},1' #50Hz
+        req_port1_dataRate.msg = f'VNWRG,07,{self.port1_frequency},1'  # 50Hz
         future_port1_dataRate = self.config_cli.call_async(req_port1_dataRate)
         future_port1_dataRate.add_done_callback(self.port1_dataRate_callback)
         t_start = time.time()
@@ -179,10 +180,10 @@ class Initializer(Node):
                 self.get_logger().error('Port 1 Data Rate Future Timed Out')
                 break
 
-        #Port 2 data type
+        # Port 2 data type
         req_port2_dataType = ConfigureVN100.Request()
-        req_port2_dataType.port = 'port1' #telling port1 1 to configure port 2
-        req_port2_dataType.msg = f'VNWRG,06,{self.port2_data_register},2' #kf output
+        req_port2_dataType.port = 'port1'  # telling port1 1 to configure port 2
+        req_port2_dataType.msg = f'VNWRG,06,{self.port2_data_register},2'  # kf output
         future_port2_dataType = self.config_cli.call_async(req_port2_dataType)
         future_port2_dataType.add_done_callback(self.port2_dataType_callback)
         t_start = time.time()
@@ -192,9 +193,9 @@ class Initializer(Node):
                 self.get_logger().error('Port 2 Data Type Future Timed Out')
                 break
 
-        #port 2 data rate
+        # port 2 data rate
         req_port2_dataRate = ConfigureVN100.Request()
-        req_port2_dataRate.port = 'port1' #telling port1 1 to configure port 2
+        req_port2_dataRate.port = 'port1'  # telling port1 1 to configure port 2
         req_port2_dataRate.msg = f'VNWRG,07,{self.port2_frequency},2'
         future_port2_dataRate = self.config_cli.call_async(req_port2_dataRate)
         future_port2_dataRate.add_done_callback(self.port2_dataRate_callback)
@@ -205,8 +206,8 @@ class Initializer(Node):
                 self.get_logger().error('Port 2 Data Rate Future Timed Out')
                 break
 
-        #NOTE: Orientation Specification is saved into the IMU itself. Please set this
-        #manually using the register 26 if the mounting of the IMU changes.
+        # NOTE: Orientation Specification is saved into the IMU itself. Please set this
+        # manually using the register 26 if the mounting of the IMU changes.
 
         # set the correct gravity vector, they use a slightly smaller one
         if self.correct_gravity:
@@ -251,7 +252,7 @@ class Initializer(Node):
         # Next, send the global/local reference positions
         self.publish_reference_positions()
 
-        #Finally, enable acoustic for the dvl
+        # Finally, enable acoustic for the dvl
         self.send_dvl_enable()
 
         # TODO: More sophisticated handling of service response
@@ -266,7 +267,7 @@ class Initializer(Node):
         msg.parameter_value = 'true'
         self.dvl_publisher.publish(msg)
         self.get_logger().info('Sent configuration command to enable dvl.')
-        #TODO: Add a check of the status topic to check if this has been carried out.
+        # TODO: Add a check of the status topic to check if this has been carried out.
 
     def publish_reference_positions(self):
         # Reference global position (example values)
@@ -289,11 +290,11 @@ class Initializer(Node):
         self.local_pub.publish(local_msg)
         self.get_logger().info('Published reference local position.')
 
-        #TODO: Add automatic checking that this worked and output it as a boolean
+        # TODO: Add automatic checking that this worked and output it as a boolean
 
         return
 
-    def port1_dataType_callback(self, future : Future):
+    def port1_dataType_callback(self, future: Future):
         response = future.result()
         if response is not None:
             self.get_logger().info(f'Result for Setting Port 1 Data Type: '
@@ -303,7 +304,7 @@ class Initializer(Node):
         else:
             self.get_logger().info('No Response for Port 1 Data Type.')
 
-    def port1_dataRate_callback(self, future : Future):
+    def port1_dataRate_callback(self, future: Future):
         response = future.result()
         if response is not None:
             self.get_logger().info(f'Result for Setting Port 1 Data Rate: '
@@ -313,7 +314,7 @@ class Initializer(Node):
         else:
             self.get_logger().info('No Response for Port 1 Data Rate.')
 
-    def port2_dataType_callback(self, future : Future):
+    def port2_dataType_callback(self, future: Future):
         response = future.result()
         if response is not None:
             self.get_logger().info(f'Result for Setting Port 2 Data Type: '
@@ -323,7 +324,7 @@ class Initializer(Node):
         else:
             self.get_logger().info('No Response for Port 2 Data Type.')
 
-    def port2_dataRate_callback(self, future : Future):
+    def port2_dataRate_callback(self, future: Future):
         response = future.result()
         if response is not None:
             self.get_logger().info(f'Result for Setting Port 2 Data Rate: '
@@ -333,7 +334,7 @@ class Initializer(Node):
         else:
             self.get_logger().info('No Response for Port 2 Data Rate.')
 
-    def set_gravity_mag_callback(self, future : Future):
+    def set_gravity_mag_callback(self, future: Future):
         response = future.result()
         if response is not None:
             self.get_logger().info(f'Result for Setting Gravity and Magnetic Ref:'
@@ -343,7 +344,7 @@ class Initializer(Node):
         else:
             self.get_logger().info('No Response for Setting Gravity and Magnetic Ref.')
 
-    def bias_estimation_callback(self, future : Future):
+    def bias_estimation_callback(self, future: Future):
         response = future.result()
         if response is not None:
             self.get_logger().info(f'Result for Bias Estimation: '
@@ -353,7 +354,7 @@ class Initializer(Node):
         else:
             self.get_logger().info('No Response for Bias Estimation.')
 
-    def ports_publishing_callback(self, future : Future):
+    def ports_publishing_callback(self, future: Future):
         response = future.result()
         if response is not None:
             self.get_logger().info(f'Result for Beginning Port Reading: '
@@ -363,12 +364,14 @@ class Initializer(Node):
         else:
             self.get_logger().info('No Response for Beginning Port Reading.')
 
+
 def main(args=None):
     rclpy.init(args=args)
     node = Initializer()
     rclpy.spin(node)
     node.destroy_node()
     rclpy.shutdown()
+
 
 if __name__ == '__main__':
     main()

@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
+from dvl_msgs.msg import ConfigCommand
 import rclpy
 from rclpy.node import Node
-from dvl_msgs.msg import ConfigCommand
+
 
 class DVLConfigurator(Node):
     def __init__(self):
@@ -28,12 +29,14 @@ class DVLConfigurator(Node):
                 f'Sent acoustic_enabled = true after {self.timer_wait} seconds')
             self.sent = True
 
+
 def main(args=None):
     rclpy.init(args=args)
     node = DVLConfigurator()
     rclpy.spin(node)
     node.destroy_node()
     rclpy.shutdown()
+
 
 if __name__ == '__main__':
     main()

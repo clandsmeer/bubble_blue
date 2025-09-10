@@ -1,25 +1,25 @@
 #!/usr/bin/env python3
-'''
+"""
 File: vectornav_manager v2.2.
+
 Author: Henry Adam
 Date: Aug 18, 2025
 
 The purpose of this file is to complete the automated
 calibration of the vectornav vn100 IMU.
-'''
+"""
 
 import threading
 import time
 
+from bubble_sensors.srv import ConfigureVN100
+from geometry_msgs.msg import PoseWithCovarianceStamped
 import numpy as np
 import rclpy
-import serial
-from geometry_msgs.msg import PoseWithCovarianceStamped
 from rclpy.node import Node
 from sensor_msgs.msg import Imu
+import serial
 from std_srvs.srv import SetBool, Trigger
-
-from bubble_sensors.srv import ConfigureVN100
 
 
 # just gets the checksum in order to complete the raw message
@@ -29,14 +29,17 @@ def vn_checksum(payload: str) -> str:
         x ^= ch
     return f'{x:02X}'
 
+
 # completes the vectornav message with the raw message and checksum
 def full_vn_message(payload: str) -> bytes:
     cks = vn_checksum(payload)
     return f'${payload}*{cks}\r\n'.encode('ascii')
 
-#Average Update Equation that only needs previous average and number of samples
+
+# Average Update Equation that only needs previous average and number of samples
 def average_update(avg_k_minus_1, k, sample_k):
     return avg_k_minus_1 * ((k-1)/k) + sample_k/k
+
 
 class VN100Manager(Node):
     def __init__(self):
@@ -92,7 +95,7 @@ class VN100Manager(Node):
         self.bias_body_x = 0
         self.bias_body_y = 0
         self.bias_body_z = 0
-        self.k = 1 # for rolling average
+        self.k = 1  # for rolling average
         self.bias_averaging_time = (
             self.get_parameter('bias_averaging_time')
             .get_parameter_value().double_value
@@ -126,7 +129,7 @@ class VN100Manager(Node):
                                             self.estimate_biases)
         self.estimating_bias = False
 
-        #Create service for starting and stopping the serial port process
+        # Create service for starting and stopping the serial port process
         self.read_srv = self.create_service(SetBool,
                                             'set_reading_status',
                                             self.toggle_reading_status)
@@ -153,10 +156,10 @@ class VN100Manager(Node):
         self.port2_thread = None
         self.thread_lock = threading.Lock()
 
-        #timer for requesting the covariance matrix
+        # timer for requesting the covariance matrix
         self.create_timer(1, self.request_covariance)
 
-        #Start the reading threads at the beginning
+        # Start the reading threads at the beginning
         self.start_reading_threads()
         self.get_logger().info('Started port1 and port2 reading threads')
 
@@ -166,7 +169,7 @@ class VN100Manager(Node):
                 msg = self.ser_port1.readline().decode('ascii', errors='ignore').strip()
                 if self.publishing_data:
                     if not msg:
-                        #empty messages, skip this
+                        # empty messages, skip this
                         continue
                     parsed_msg = msg.split('*')[0].split(',')
                     msg_type = parsed_msg[0]
@@ -284,7 +287,7 @@ class VN100Manager(Node):
                         )
 
             except Exception as e:
-                    self.get_logger().error(f'Error in Port 1: {e}')
+                self.get_logger().error(f'Error in Port 1: {e}')
 
         self.get_logger().info('Serial Port 1 Closing')
         return
@@ -322,7 +325,7 @@ class VN100Manager(Node):
                         ekf_message.pose.covariance[14] = -1
 
                         # create the header for the message
-                        ekf_message.header.frame_id = 'map_ned' #publishes the
+                        ekf_message.header.frame_id = 'map_ned'  # publishes the
                         ekf_message.header.stamp = self.get_clock().now().to_msg()
 
                         # actually publish the message
@@ -473,6 +476,7 @@ class VN100Manager(Node):
         response.success = True
         response.message = f'Updated Publishing Data to {request.data}'
         return response
+
 
 def main(args=None):
     rclpy.init(args=args)
