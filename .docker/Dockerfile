@@ -116,7 +116,10 @@ ARG MAVLINK_RELEASE=release/jazzy/mavlink
 RUN git clone -b ${MAVROS_RELEASE} https://github.com/mavlink/mavros.git \
     && cd mavros \
     && git checkout e7a3e40e
-RUN git clone --depth 1 --recursive -b ${MAVLINK_RELEASE} https://github.com/ros2-gbp/mavlink-gbp-release.git mavlink
+RUN git clone -b release/jazzy/mavlink https://github.com/ros2-gbp/mavlink-gbp-release.git mavlink \
+    && cd mavlink \
+    && git checkout dfa34b2
+
 
 WORKDIR $USER_WORKSPACE
 RUN sudo apt-get -q update \
