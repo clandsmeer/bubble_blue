@@ -9,6 +9,11 @@ on:
 
 env:
   CLANG_TIDY: true
+  DOCKER_IMAGE: ghcr.io/patpat98/bubble_blue:${{ matrix.env.IMAGE }}
+  CXXFLAGS: >-
+    -Wall -Wextra -Wpedantic -Wwrite-strings -Wunreachable-code -Wpointer-arith -Wredundant-decls
+  CC: ${{ env.CLANG_TIDY && 'clang' }}
+  CXX: ${{ env.CLANG_TIDY && 'clang++' }}
   UPSTREAM_WORKSPACE: blue.repos
 
 jobs:
