@@ -9,8 +9,7 @@ on:
 
 env:
   CLANG_TIDY: true
-  DOCKER_IMAGE: ghcr.io/patpat98/bubble_blue:${{ matrix.env.IMAGE }}
-  UPSTREAM_WORKSPACE: blue.repos
+  UPSTREAM_WORKSPACE: ci.repos
 
 jobs:
   test-implementation:
