@@ -4,4 +4,8 @@ ardusub_manager:
       ids: [31, 32]
       rates: [50.0, 50.0]
     set_ekf_origin: true
+    ekf_origin:
+        latitude: 47.3769
+        longitude: 8.5417
+        altitude: 0.0
     publish_tf: false

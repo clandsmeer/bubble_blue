@@ -20,6 +20,8 @@ find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(pluginlib REQUIRED)
+find_package(dvl_msgs REQUIRED)
+find_package(rosidl_default_generators REQUIRED)
 
 # uncomment the following section in order to fill in
 # further dependencies manually.
@@ -28,10 +30,12 @@ find_package(pluginlib REQUIRED)
 # Add the executable and target
 add_executable(generic_sensor_publisher src/generic_sensor.cpp)
 add_executable(performance_dvl src/waterlinked_performance_dvl.cpp)
-add_executable(vectornav_imu src/vectornav_imu.cpp)
+add_executable(sim_imu_message_converter src/sim_imu_message_converter.cpp)
+add_executable(dvl_message_converter src/dvl_message_converter.cpp)
 ament_target_dependencies(generic_sensor_publisher rclcpp nav_msgs)
 ament_target_dependencies(performance_dvl rclcpp nav_msgs geometry_msgs tf2 tf2_ros tf2_geometry_msgs)
-ament_target_dependencies(vectornav_imu rclcpp nav_msgs sensor_msgs tf2 tf2_ros tf2_geometry_msgs)
+ament_target_dependencies(sim_imu_message_converter rclcpp nav_msgs sensor_msgs tf2 tf2_ros tf2_geometry_msgs)
+ament_target_dependencies(dvl_message_converter rclcpp geometry_msgs dvl_msgs)
 
 add_library(mavros_sensor_plugin SHARED src/mavros_sensor_plugin.cpp)
 target_include_directories(mavros_sensor_plugin PUBLIC
@@ -55,7 +59,7 @@ ament_target_dependencies(mavros_sensor_plugin
 # Tells mavros where to look for mavros plugins belonging to bubble_sensors
 pluginlib_export_plugin_description_file(mavros mavros_plugins.xml)
 
-install(TARGETS generic_sensor_publisher performance_dvl vectornav_imu mavros_sensor_plugin
+install(TARGETS generic_sensor_publisher performance_dvl sim_imu_message_converter mavros_sensor_plugin dvl_message_converter
   EXPORT export_${PROJECT_NAME}
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
@@ -67,6 +71,19 @@ install(DIRECTORY include/
 install(FILES mavros_plugins.xml
   DESTINATION share/${PROJECT_NAME})
 
+#install the dvl enabler
+install(PROGRAMS
+  src/dvl_enabler.py
+  src/initializer.py
+  src/vectornav_manager.py
+  DESTINATION lib/${PROJECT_NAME}
+)
+
+# add the custom service for IMU Configuration
+rosidl_generate_interfaces(${PROJECT_NAME}
+  "srv/ConfigureVN100.srv"
+  DEPENDENCIES std_msgs
+)
 # make sure the launch directory can be accessed so the overall bringup file can launch sensors
 install(
   DIRECTORY launch config

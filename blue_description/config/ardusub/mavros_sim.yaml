@@ -18,11 +18,8 @@ mavros:
 
 mavros_node:
   ros__parameters:
-    fcu_url: "udp://:14755@0.0.0.0:14755"
-    gcs_url: "udp://@192.168.2.1:14550"
-    local_position/origin_lat: 0.0
-    local_position/origin_lon: 0.0
-    local_position/origin_alt: 0.0
+    fcu_url: "tcp://localhost"
+    gcs_url: "udp://@localhost:14550"
 
 mavros/local_position:
   ros__parameters:

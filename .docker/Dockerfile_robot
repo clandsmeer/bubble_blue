@@ -108,6 +108,7 @@ RUN apt-get -q update \
     libgstreamer1.0-dev \
     gstreamer1.0-gl \
     libgstreamer-plugins-base1.0-dev \
+    && apt-get install vim -y\
     && apt-get autoremove -y \
     && apt-get clean -y \
     && rm -rf /var/lib/apt/lists/*
@@ -117,8 +118,13 @@ USER $USERNAME
 WORKDIR $USER_WORKSPACE/src/
 ARG MAVROS_RELEASE=ros2
 ARG MAVLINK_RELEASE=release/jazzy/mavlink
-RUN git clone --depth 1 -b ${MAVROS_RELEASE} https://github.com/mavlink/mavros.git
-RUN git clone --depth 1 --recursive -b ${MAVLINK_RELEASE} https://github.com/ros2-gbp/mavlink-gbp-release.git mavlink
+#For now, have to checkout older mavros release since newer version breaks it
+RUN git clone -b ${MAVROS_RELEASE} https://github.com/mavlink/mavros.git \
+    && cd mavros \
+    && git checkout e7a3e40e
+RUN git clone -b release/jazzy/mavlink https://github.com/ros2-gbp/mavlink-gbp-release.git mavlink \
+    && cd mavlink \
+    && git checkout dfa34b2
 
 WORKDIR $USER_WORKSPACE
 USER root
@@ -126,7 +132,8 @@ RUN apt-get -q update \
     && apt-get -q -y upgrade
 USER $USERNAME
 
-RUN vcs import src < src/blue/blue.repos
+RUN vcs import src < src/blue/blue.repos \
+    && cd src && git clone --recurse-submodules https://github.com/paagutie/dvl-a50.git && cd ../
 
 USER root
 RUN rosdep update \
@@ -136,9 +143,11 @@ RUN rosdep update \
     && rm -rf /var/lib/apt/lists/*
 USER $USERNAME
 
-# Actually build workspace
-RUN . "/opt/ros/${ROS_DISTRO}/setup.sh" \
-    && MAKEFLAGS="-j1 -l1.0" colcon build
+# Actually build workspace (edited to use /bin/bash)
+RUN /bin/bash -c ". /opt/ros/${ROS_DISTRO}/setup.sh \
+    && colcon build --packages-select dvl_msgs dvl_a50 \
+    && . install/setup.bash \
+    && MAKEFLAGS='-j8 -l6.0' colcon build"
 
 RUN echo "source ${USER_WORKSPACE}/install/setup.bash" >> /home/$USERNAME/.bashrc \
     && echo "source /opt/ros/${ROS_DISTRO}/setup.bash" >> /home/$USERNAME/.bashrc \

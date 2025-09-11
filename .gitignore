@@ -19,3 +19,10 @@ logs/
 
 # Allow overrides in docker-bake
 .docker/docker-bake.override.hcl
+
+#ignore all rosbag2 files
+rosbag2*
+ROS2BAG*
+*.mcap
+metadata.yaml
+bags

@@ -23,7 +23,7 @@ launch:
 
   - arg:
       name: use_imu
-      default: "false"
+      default: "true"
 
   - arg:
       name: use_ekf
@@ -58,7 +58,11 @@ launch:
       default: $(find-pkg-share blue_description)/gazebo/worlds/underwater.world
 
   - arg:
-      name: mavros_file
+      name: mavros_file_sim
+      default: $(find-pkg-share blue_description)/config/ardusub/mavros_sim.yaml
+
+  - arg:
+      name: mavros_file_real
       default: $(find-pkg-share blue_description)/config/ardusub/mavros.yaml
 
   - arg:
@@ -104,9 +108,29 @@ launch:
   # Includes
   - include:
       file: $(find-pkg-share ardusub_bringup)/launch/ardusub.launch.yaml
+      if: $(var use_sim)
       arg:
         - name: mavros_file
-          value: $(var mavros_file)
+          value: $(var mavros_file_sim)
+        - name: gazebo_world_file
+          value: $(var gazebo_world_file)
+        - name: ardusub_params_file
+          value: $(var ardusub_params_file)
+        - name: manager_file
+          value: $(var manager_file)
+        - name: model_name
+          value: $(var model_name)
+        - name: use_sim
+          value: $(var use_sim)
+        - name: use_manager
+          value: $(var use_manager)
+
+  - include:
+      file: $(find-pkg-share ardusub_bringup)/launch/ardusub.launch.yaml
+      if: $(not $(var use_sim))
+      arg:
+        - name: mavros_file
+          value: $(var mavros_file_real)
         - name: gazebo_world_file
           value: $(var gazebo_world_file)
         - name: ardusub_params_file
@@ -140,11 +164,25 @@ launch:
   - include:
       file: $(find-pkg-share message_transforms)/launch/tf.launch.yaml
 
+  # if using sim, use simulated sensors
   - include:
-      file: $(find-pkg-share bubble_sensors)/launch/sensors.launch.yaml
+      file: $(find-pkg-share bubble_sensors)/launch/sim_sensors.launch.yaml
+      if: $(var use_sim)
       arg:
           - name: use_generic
             value: $(var use_generic)
+          - name: use_dvl
+            value: $(var use_dvl)
+          - name: use_imu
+            value: $(var use_imu)
+          - name: use_ekf
+            value: $(var use_ekf)
+
+  # if using the real robot, use the actual robot sensors
+  - include:
+      file: $(find-pkg-share bubble_sensors)/launch/real_sensors.launch.yaml
+      if: $(not $(var use_sim))
+      arg:
           - name: use_dvl
             value: $(var use_dvl)
           - name: use_imu

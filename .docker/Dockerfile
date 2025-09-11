@@ -112,22 +112,31 @@ RUN sudo apt-get -q update \
 WORKDIR $USER_WORKSPACE/src/
 ARG MAVROS_RELEASE=ros2
 ARG MAVLINK_RELEASE=release/jazzy/mavlink
-RUN git clone --depth 1 -b ${MAVROS_RELEASE} https://github.com/mavlink/mavros.git
-RUN git clone --depth 1 --recursive -b ${MAVLINK_RELEASE} https://github.com/ros2-gbp/mavlink-gbp-release.git mavlink
+#For now, have to checkout older mavros release since newer version breaks it
+RUN git clone -b ${MAVROS_RELEASE} https://github.com/mavlink/mavros.git \
+    && cd mavros \
+    && git checkout e7a3e40e
+RUN git clone -b release/jazzy/mavlink https://github.com/ros2-gbp/mavlink-gbp-release.git mavlink \
+    && cd mavlink \
+    && git checkout dfa34b2
+
 
 WORKDIR $USER_WORKSPACE
 RUN sudo apt-get -q update \
     && sudo apt-get -q -y upgrade \
     && vcs import src < src/blue/blue.repos \
+    && cd src && git clone --recurse-submodules https://github.com/paagutie/dvl-a50.git && cd ../\
     && rosdep update \
     && rosdep install -y --from-paths src --ignore-src --rosdistro ${ROS_DISTRO} \
     && sudo apt-get autoremove -y \
     && sudo apt-get clean -y \
     && sudo rm -rf /var/lib/apt/lists/*
 
-# Actually build workspace
-RUN . "/opt/ros/${ROS_DISTRO}/setup.sh" \
-    && MAKEFLAGS="-j8 -l6.0" colcon build
+# Actually build workspace (edited to use /bin/bash)
+RUN /bin/bash -c ". /opt/ros/${ROS_DISTRO}/setup.sh \
+    && colcon build --packages-select dvl_msgs dvl_a50 \
+    && . install/setup.bash \
+    && MAKEFLAGS='-j8 -l6.0' colcon build"
 
 RUN echo "source ${USER_WORKSPACE}/install/setup.bash" >> /home/$USERNAME/.bashrc \
     && echo "source /opt/ros/${ROS_DISTRO}/setup.bash" >> /home/$USERNAME/.bashrc \
@@ -214,8 +223,13 @@ RUN sudo apt-get -q update \
 # For users that build this on a laptop or system with limited RAM,
 # Modify the 'colcon build' line to be 'MAKEFLAGS="-j1 -l1" colcon build'
 # This will limit the amount of RAM that colcon is allowed to use
-RUN . "/opt/ros/${ROS_DISTRO}/setup.sh" \
-    &&  MAKEFLAGS="-j8 -l6.0" colcon build
+# in addition, use the /bin/bash -c to ensure that the environment can
+# change locally to allow the bubble_sensors package to register the
+# dvl_msgs package
+RUN /bin/bash -c ". /opt/ros/${ROS_DISTRO}/setup.sh \
+    && colcon build --packages-select dvl_msgs dvl_a50 \
+    && . install/setup.bash \
+    && MAKEFLAGS='-j8 -l6.0' colcon build"
 
 # Setup the simulation environment variables
 RUN  <<EOT cat >> /home/$USERNAME/.bashrc

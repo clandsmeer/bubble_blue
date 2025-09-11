@@ -1,0 +1,57 @@
+# Configuration for the Initializer.
+# This defines most of the initial conditions of the robot,
+# and includes some configuration parameters like data type
+# and frequency for each port.
+initializer:
+  ros__parameters:
+    port1_data_register: 16
+    port1_frequency: 20
+
+    port2_data_register: 254
+    port2_frequency: 20
+
+    gp_origin_lat: 47.3769 #Zurich GPS coordinates
+    gp_origin_long: 8.5417
+    gp_origin_alt: 0.0
+
+    init_pose_x: 0.0
+    init_pose_y: 0.0
+    init_pose_z: 0.0
+
+    rot_matrix_imu_to_body: [1.0, 0.0, 0.0,
+                             0.0, 0.0, -1.0,
+                             0.0, 1.0, 0.0]
+
+    mag_ref_x: 0.22 #Zurich Magnetic Field
+    mag_ref_y: 0.03
+    mag_ref_z: 0.89
+
+    gravity: -9.80600 #Zurich Gravity Strength(swiss gravity zones website)
+
+    correct_gravity: true
+    correct_bias: true
+
+#Configuration for the vectornav_manager node
+vectornav_manager:
+  ros__parameters:
+    port1: "/dev/ttyAMA4"
+    port2: "/dev/ttyAMA5"
+    baudrate: 115200
+    print_output: false
+    read_time: 2.0
+    imu_accel_cov: 0.5
+    imu_ang_vel_covariance: 0.1
+    imu_orientation_cov: 0.05
+    init_kf_orient_cov: 0.01
+    bias_averaging_time: 45.0
+
+# Configuration for the dvl_a50 node
+dvl_a50:
+  ros__parameters:
+    ip_address: 192.168.194.95
+
+# Configuration for the dvl_message_converter node
+dvl_message_converter:
+  ros__parameters:
+    input_topic: "/dvl/data"
+    output_topic: "/dvl/twist_data"

@@ -1,0 +1,102 @@
+launch:
+
+  - arg:
+      name: use_generic
+      default: "false"
+
+  - arg:
+      name: use_dvl
+      default: "true"
+
+  - arg:
+      name: use_imu
+      default: "true"
+
+  - arg:
+      name: use_ekf
+      default: "true"
+
+  - node:
+      pkg: bubble_sensors
+      if: $(var use_generic)
+      exec: generic_sensor_publisher
+      param:
+        - name: noise_stddev
+          value: 0.05
+        - name: position_meas
+          value: true
+        - name: angular_meas
+          value: true
+        - name: pos_twist
+          value: true
+        - name: angular_twist
+          value: true
+        - name: input_topic
+          value: "/model/bluerov2/odometry"
+        - name: output_topic
+          value: "/sensors/generalized_sensor_test"
+        - name: use_sim_time
+          value: true
+
+  - node:
+      pkg: bubble_sensors
+      if: $(var use_dvl)
+      exec: performance_dvl
+      param:
+        - name: noise_stddev
+          value: 0.0
+        - name: bias
+          value: 0.0
+        - name: long_term_inaccuracy_percentage
+          value: 0.1
+        - name: resolution_mms
+          value: 0.1
+        - name: angular_twist
+          value: false
+        - name: input_topic
+          value: "/model/bluerov2/odometry"
+        - name: output_topic
+          value: "/dvl/twist_data"
+        - name: use_sim_time
+          value: true
+
+  #VECTORNAV NODE HAS BEEN MOVED TO A GAZEBO SENSOR PLACED ON THE SIMULATED ROBOT,
+  #Use ros_gz_bridge to convert the gazebo Imu messages to ros2
+  - node:
+      pkg: ros_gz_bridge
+      exec: parameter_bridge
+      args: /vectornav/Imu_raw@sensor_msgs/msg/Imu[gz.msgs.IMU
+      param:
+        - name: use_sim_time
+          value: true
+  # Then launch the node to convert these messages to the same as the real life robot
+  - node:
+      pkg: bubble_sensors
+      exec: sim_imu_message_converter
+      if: $(var use_imu)
+      param:
+        - name: "input_topic"
+          value: "/vectornav/Imu_raw"
+        - name: "output_topic_accel"
+          value: "/vectornav/Imu_body"
+        - name: "output_topic_orient"
+          value: "/vectornav/filtered_orientation"
+        - name: "gravity_strength"
+          value: 9.8
+
+  # Define the transformations from the base link into the dvl and imu frames
+  - node:
+      pkg: tf2_ros
+      exec: static_transform_publisher
+      name: base_link_to_dvl
+      args: --x -0.15 --y 0.0 --z -0.12 --roll 0.0 --pitch 0.0 --yaw 0.0 --frame-id base_link_fsd --child-frame-id dvl_a50
+
+  - node:
+      pkg: tf2_ros
+      exec: static_transform_publisher
+      name: base_link_to_vn100
+      args: --x 0.02 --y 0.0 --z -0.05 --roll 0.0 --pitch 0.0 --yaw 0.0 --frame-id base_link_fsd --child-frame-id vectornav
+
+  - include:
+      if: $(var use_ekf)
+      file: $(find-pkg-share bubble_sensors)/launch/ekf.launch.py
