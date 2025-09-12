@@ -4,7 +4,7 @@
 
     <link name="${prefix}dvl_link">
       <inertial>
-        <mass value="0.170" />
+        <mass value="0.0170" />
         <inertia
           ixx="0.00005514"
           ixy="0"

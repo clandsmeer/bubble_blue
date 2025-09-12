@@ -4,7 +4,7 @@
 
     <link name="${prefix}imu_link">
       <inertial>
-        <mass value="0.015" />
+        <mass value="0.00015" />
         <inertia
           ixx="0.0000017"
           ixy="0"

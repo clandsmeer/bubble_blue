@@ -1,6 +1,6 @@
 ekf_filter_node:
   ros__parameters:
-      # Declare the frequency of the EKF update
+      #Declare the frequency of the EKF update
       frequency: 10.0
 
       two_d_mode: false
@@ -12,7 +12,7 @@ ekf_filter_node:
       map_frame: map_ned
       odom_frame: odom_ned
       base_link_frame: base_link_frd
-      world_frame: map_ned
+      world_frame: odom_ned
 
       # When declaring parameters, do it in the following way:
       # Declare the sensor by the type of message you're receiving(odom, imu, twist)
@@ -25,17 +25,10 @@ ekf_filter_node:
       #                 x_accel, y_accel, z_accel]
       # Each of which gets a boolean value
 
-      # Setting initial state manually for testing
-      initial_state: [0.0, 0.0, 0.0, 
-                      0.0, 0.0, 0.0, 
-                      0.0, 0.0, 0.0, 
-                      0.0, 0.0, 0.0,
-                      0.0, 0.0, 0.0]
-
       process_noise_covariance: [
-        1e-2, 0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,0.0,0.0,    0.0,    0.0,    0.0,    0.0,    0.0,
-        0.0,    1e-2, 0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,
-        0.0,    0.0,    1e-2, 0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,
+        1e-1, 0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,0.0,0.0,    0.0,    0.0,    0.0,    0.0,    0.0,
+        0.0,    1e-1, 0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,
+        0.0,    0.0,    1e-1, 0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,
         0.0,    0.0,    0.0,    1e-4, 0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,
         0.0,    0.0,    0.0,    0.0,    1e-4, 0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,
         0.0,    0.0,    0.0,    0.0,    0.0,    1e-4, 0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,
@@ -49,10 +42,10 @@ ekf_filter_node:
         0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    1e-2, 0.0,
         0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    1e-2]
 
-      # Only use output z from mavros, since they have high-quality z prediction from barometer
+      # first configure the data coming from the pixhawk IMU
       odom0: /mavros/local_position/odom
-      odom0_config: [false, false, true,
-                       false, false, false,
+      odom0_config: [true, true, true,
+                       true, true, true,
                        false, false, false,
                        false, false, false,
                        false, false, false]
@@ -80,12 +73,10 @@ ekf_filter_node:
                       true, true, true,
                       true, true, true]
 
-      # Add the sensor output from mavros
-      imu1: /mavros/imu/data_comped
-      imu1_config: [false, false, false,
-                      false, false, false,
-                      false, false, false,
+      #Add the initialization topic(pose_cov for ardupilot initialization)
+      pose1: /mavros/vision_pose/pose_cov
+      pose1_config: [true, true, true,
                       true, true, true,
-                      true, true, true]
-
-
+                      false, false, false,
+                      false, false, false,
+                      false, false, false]
