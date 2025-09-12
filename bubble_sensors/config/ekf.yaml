@@ -26,9 +26,9 @@ ekf_filter_node:
       # Each of which gets a boolean value
 
       # Setting initial state manually for testing
-      initial_state: [0.0, 0.0, 0.0, 
-                      0.0, 0.0, 0.0, 
-                      0.0, 0.0, 0.0, 
+      initial_state: [0.0, 0.0, 0.0,
+                      0.0, 0.0, 0.0,
+                      0.0, 0.0, 0.0,
                       0.0, 0.0, 0.0,
                       0.0, 0.0, 0.0]
 
@@ -87,12 +87,10 @@ ekf_filter_node:
                       false, false, false,
                       true, true, true,
                       true, true, true]
-      
+
       pose1: /mavros/local_position/pose_cov
       pose1_config: [true, true, false,
                      false, false, false,
                      false, false, false,
                      false, false, false,
                      false, false, false]
-
-

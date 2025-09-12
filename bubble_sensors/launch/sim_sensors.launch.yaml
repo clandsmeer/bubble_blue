@@ -11,8 +11,8 @@ launch:
   - arg:
       name: use_vn100
       default: "true"
-  
-  - arg: 
+
+  - arg:
       name: use_AS_imu
       default: "true"
 
@@ -82,7 +82,7 @@ launch:
       param:
         - name: use_sim_time
           value: true
-          
+
   # Then launch the node to convert these messages to the same as the real life robot
   - node:
       pkg: bubble_sensors
@@ -98,7 +98,7 @@ launch:
         - name: "gravity_strength"
           value: 9.8
 
-  - node: 
+  - node:
       pkg: bubble_sensors
       exec: gravity_compensator
       if: $(var use_AS_imu)
@@ -109,7 +109,7 @@ launch:
           value: "/mavros/imu/data_comped"
         - name: "gravity_strength"
           value: 9.80665
-          
+
   #Initializer Node:
   - node:
       pkg: bubble_sensors

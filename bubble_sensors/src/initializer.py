@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-File: initializer v2.0.
+File: initializer v3.0.
 
 Author: Henry Adam
 Date: Aug 19, 2025
@@ -16,10 +16,9 @@ from bubble_sensors.srv import ConfigureVN100
 from dvl_msgs.msg import ConfigCommand
 from geographic_msgs.msg import GeoPointStamped
 from geometry_msgs.msg import PoseWithCovarianceStamped
-from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 import rclpy
+from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 from rclpy.node import Node
-from rclpy.task import Future
 from std_srvs.srv import SetBool, Trigger
 
 
@@ -98,16 +97,16 @@ class Initializer(Node):
 
         self.correct_gravity = self.get_parameter(
             'correct_gravity').get_parameter_value().bool_value
-        
+
         self.correct_bias = self.get_parameter(
             'correct_bias').get_parameter_value().bool_value
-        
+
         self.use_imu = self.get_parameter(
             'use_imu').get_parameter_value().bool_value
 
         # Create the client for the IMU Configuration service
         if self.use_imu:
-            client_cb_group = MutuallyExclusiveCallbackGroup() 
+            client_cb_group = MutuallyExclusiveCallbackGroup()
             self.config_cli = self.create_client(
                 ConfigureVN100,
                 '/configure_vn100', callback_group=client_cb_group)
@@ -130,11 +129,11 @@ class Initializer(Node):
         self.global_pub = self.create_publisher(
             GeoPointStamped,
             '/mavros/global_position/set_gp_origin', 10)
-        
+
         self.local_pub = self.create_publisher(
             PoseWithCovarianceStamped,
             '/set_pose', 10)
-        
+
         self.dvl_publisher = self.create_publisher(
             ConfigCommand,
             '/dvl/config/command', 10)
@@ -146,7 +145,7 @@ class Initializer(Node):
             'initialize',
             self.init_service_callback,
             callback_group=init_callbackGroup)
-        
+
         self.get_logger().info(
             'Initializer Started and /configure_vn100 service grabbed. '
             'Ready for initialization')
@@ -177,26 +176,26 @@ class Initializer(Node):
         response.success = True
         response.message = 'PLACEHOLDER MESSAGE FOR SERVICE STATUS.'
         return response
-    
+
     # Configure the IMU by sending consecutive messages
     def configure_imu(self):
-        #pre-set these to true and switch to false if they fail
+        # pre-set these to true and switch to false if they fail
         Port1Data_Success = True
         Port1DataRate_Success = True
-        Port2Data_Success = True 
+        Port2Data_Success = True
         Port2DataRate_Success = True
-        Gravity_Success = True 
-        BiasCorrection_Success = True 
+        Gravity_Success = True
+        BiasCorrection_Success = True
         PortPublishing_Success = True
 
         # Port 1 data type
         if not self.call_service_and_wait(
-            self.config_cli, 
+            self.config_cli,
             ConfigureVN100.Request(
-                port='port1', 
+                port='port1',
                 msg=f'VNWRG,06,{self.port1_data_register},1'
             ),
-            'Port 1 Data Type' 
+            'Port 1 Data Type'
         ):
             Port1Data_Success = False
 
@@ -207,7 +206,7 @@ class Initializer(Node):
                 port='port1',
                 msg=f'VNWRG,07,{self.port1_frequency},1'
             ),
-            'Port 1 Data Rate' 
+            'Port 1 Data Rate'
         ):
             Port1DataRate_Success = False
 
@@ -218,7 +217,7 @@ class Initializer(Node):
                 port='port1',
                 msg=f'VNWRG,06,{self.port2_data_register},2'
             ),
-            'Port 2 Data Type' 
+            'Port 2 Data Type'
         ):
             Port2Data_Success = False
 
@@ -229,7 +228,7 @@ class Initializer(Node):
                 port='port1',
                 msg=f'VNWRG,07,{self.port2_frequency},2'
             ),
-            'Port 2 Data Rate' 
+            'Port 2 Data Rate'
         ):
             Port2DataRate_Success = False
 
@@ -241,17 +240,16 @@ class Initializer(Node):
                     port='port1',
                     msg=f'VNWRG,21,{self.mag_ref_x},{self.mag_ref_y},{self.mag_ref_z},0,0,{self.gravity}'
                 ),
-                'Gravity and Magnetic Reference' 
+                'Gravity and Magnetic Reference'
             ):
                 Gravity_Success = False
-            
 
         # Bias estimation
         if self.correct_bias:
             if not self.call_service_and_wait(
                 self.bias_cli,
                 Trigger.Request(),
-                'Bias Estimation' ,
+                'Bias Estimation',
                 timeout=60.0
             ):
                 BiasCorrection_Success = False
@@ -260,16 +258,16 @@ class Initializer(Node):
         if not self.call_service_and_wait(
             self.port_publishing_cli,
             SetBool.Request(data=True),
-            'Port Publishing' 
+            'Port Publishing'
         ):
             PortPublishing_Success = False
 
-        return (Port1Data_Success and 
-                Port1DataRate_Success and 
-                Port2Data_Success and 
-                Port2DataRate_Success and 
-                Gravity_Success and 
-                BiasCorrection_Success and 
+        return (Port1Data_Success and
+                Port1DataRate_Success and
+                Port2Data_Success and
+                Port2DataRate_Success and
+                Gravity_Success and
+                BiasCorrection_Success and
                 PortPublishing_Success)
 
     def send_dvl_enable(self):
@@ -304,14 +302,14 @@ class Initializer(Node):
 
         covariance = [0.0] * 36
         covariance[0] = 1e-6   # x position - high confidence but not infinite
-        covariance[7] = 1e-6   # y position - high confidence but not infinite  
+        covariance[7] = 1e-6   # y position - high confidence but not infinite
         covariance[14] = 1e6   # z position - low confidence (let sensors handle this)
         covariance[21] = 1e6   # roll - low confidence (let IMU handle this)
         covariance[28] = 1e6   # pitch - low confidence (let IMU handle this)
         covariance[35] = 1e6   # yaw - low confidence (let IMU handle this)
-        
+
         local_msg.pose.covariance = covariance
-    
+
         self.local_pub.publish(local_msg)
         self.get_logger().info('Published reference local position.')
 
@@ -321,46 +319,49 @@ class Initializer(Node):
 
     # Call the configuration services and wait for them to complete
     def call_service_and_wait(self, client, request, operation_name, timeout=10.0):
-        
-        self.get_logger().info(f"Starting {operation_name}...")
-        
+
+        self.get_logger().info(f' Starting {operation_name}...')
+
         # Make the service call
         future = client.call_async(request)
-        
+
         # Wait for service to complete
         start_time = time.time()
         while not future.done():
             if time.time() - start_time > timeout:
-                self.get_logger().error(f"{operation_name} timed out after {timeout} seconds")
+                self.get_logger().error(
+                    f' {operation_name} timed out after {timeout} seconds')
                 return False
-        
+
         # Get the result
         try:
             response = future.result()
             if response and hasattr(response, 'success'):
                 if response.success:
-                    self.get_logger().info(f"{operation_name} completed successfully: {response.message}")
+                    self.get_logger().info(
+                        f' {operation_name} completed successfully: {response.message}')
                     return True
                 else:
-                    self.get_logger().error(f"{operation_name} failed: {response.message}")
+                    self.get_logger().error(
+                        f' {operation_name} failed: {response.message}')
                     return False
             else:
-                self.get_logger().error(f"{operation_name} returned no valid response")
+                self.get_logger().error(f'{operation_name} returned no valid response')
                 return False
-                
+
         except Exception as e:
-            self.get_logger().error(f"{operation_name} failed with exception: {str(e)}")
+            self.get_logger().error(f'{operation_name} failed with exception: {str(e)}')
             return False
 
 
 def main(args=None):
     rclpy.init(args=args)
-    
+
     # Use MultiThreadedExecutor instead of default single-threaded
     executor = rclpy.executors.MultiThreadedExecutor()
     node = Initializer()
     executor.add_node(node)
-    
+
     try:
         executor.spin()
     except KeyboardInterrupt:

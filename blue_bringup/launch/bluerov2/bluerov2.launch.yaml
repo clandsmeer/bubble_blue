@@ -20,8 +20,8 @@ launch:
   - arg:
       name: use_dvl
       default: "true"
-    
-  - arg: 
+
+  - arg:
       name: use_blue_localization
       default: "true"
 

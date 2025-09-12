@@ -5,7 +5,7 @@ File: sim_vectornav_manager v1.0.
 Author: Henry Adam
 Date: Sept 12, 2025
 
-The purpose of this file is to make the imu initialization services avaliable
+The purpose of this file is to make the imu initialization services available
 for the simulation. It does not actually configure anything, it just receives
 service calls and records successful service calls
 """
@@ -60,13 +60,15 @@ class SimVN100Manager(Node):
         response.message = 'VN100 bias estimated.'
         self.get_logger().info('Handle Port Finished Correctly. Sending Response')
         return response
-    
+
     def toggle_reading_status(self, request, response):
-        self.get_logger().info('Simulation received Command to Toggle Reading Status to {request.data}')
+        self.get_logger().info(
+            'Simulation received Command to Toggle Reading Status to {request.data}')
         response.success = True
         response.message = f'Updated Publishing Data to {request.data}'
-        return response 
-    
+        return response
+
+
 def main(args=None):
     rclpy.init(args=args)
 
