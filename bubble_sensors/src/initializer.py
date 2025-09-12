@@ -16,10 +16,12 @@ from bubble_sensors.srv import ConfigureVN100
 from dvl_msgs.msg import ConfigCommand
 from geographic_msgs.msg import GeoPointStamped
 from geometry_msgs.msg import PoseWithCovarianceStamped
+from rclpy.callback_groups import MutuallyExclusiveCallbackGroup, ReentrantCallbackGroup
 import rclpy
 from rclpy.node import Node
 from rclpy.task import Future
 from std_srvs.srv import SetBool, Trigger
+import threading
 
 
 class Initializer(Node):
@@ -106,9 +108,10 @@ class Initializer(Node):
 
         # Create the client for the IMU Configuration service
         if self.use_imu:
+            client_cb_group = MutuallyExclusiveCallbackGroup() 
             self.config_cli = self.create_client(
                 ConfigureVN100,
-                '/configure_vn100')
+                '/configure_vn100', callback_group=client_cb_group)
             while not self.config_cli.wait_for_service(timeout_sec=5.0):
                 self.get_logger().info('Waiting for /configure_vn100 service...')
 
@@ -138,11 +141,14 @@ class Initializer(Node):
             ConfigCommand,
             '/dvl/config/command', 10)
 
+        init_callbackGroup = MutuallyExclusiveCallbackGroup()
         # create the triggered service that initializes the system.
         self.init_service = self.create_service(
             Trigger,
             'initialize',
-            self.init_service_callback)
+            self.init_service_callback,
+            callback_group=init_callbackGroup)
+        
         self.get_logger().info(
             'Initializer Started and /configure_vn100 service grabbed. '
             'Ready for initialization')
@@ -176,7 +182,15 @@ class Initializer(Node):
     
     # Configure the IMU by sending consecutive messages
     def configure_imu(self):
-        
+        #pre-set these to true and switch to false if they fail
+        Port1Data_Success = True
+        Port1DataRate_Success = True
+        Port2Data_Success = True 
+        Port2DataRate_Success = True
+        Gravity_Success = True 
+        BiasCorrection_Success = True 
+        PortPublishing_Success = True
+
         # Port 1 data type
         if not self.call_service_and_wait(
             self.config_cli, 
@@ -184,9 +198,9 @@ class Initializer(Node):
                 port='port1', 
                 msg=f'VNWRG,06,{self.port1_data_register},1'
             ),
-            "Port 1 Data Type"
+            ' Port 1 Data Type' 
         ):
-            return False
+            Port1Data_Success = False
 
         # Port 1 data rate
         if not self.call_service_and_wait(
@@ -195,9 +209,9 @@ class Initializer(Node):
                 port='port1',
                 msg=f'VNWRG,07,{self.port1_frequency},1'
             ),
-            "Port 1 Data Rate"
+            ' Port 1 Data Rate' 
         ):
-            return False
+            Port1DataRate_Success = False
 
         # Port 2 data type
         if not self.call_service_and_wait(
@@ -206,9 +220,9 @@ class Initializer(Node):
                 port='port1',
                 msg=f'VNWRG,06,{self.port2_data_register},2'
             ),
-            "Port 2 Data Type"
+            ' Port 2 Data Type' 
         ):
-            return False
+            Port2Data_Success = False
 
         # Port 2 data rate
         if not self.call_service_and_wait(
@@ -217,9 +231,9 @@ class Initializer(Node):
                 port='port1',
                 msg=f'VNWRG,07,{self.port2_frequency},2'
             ),
-            "Port 2 Data Rate"
+            ' Port 2 Data Rate' 
         ):
-            return False
+            Port2DataRate_Success = False
 
         # Set gravity and magnetic reference
         if self.correct_gravity:
@@ -229,29 +243,36 @@ class Initializer(Node):
                     port='port1',
                     msg=f'VNWRG,21,{self.mag_ref_x},{self.mag_ref_y},{self.mag_ref_z},0,0,{self.gravity}'
                 ),
-                "Gravity and Magnetic Reference"
+                ' Gravity and Magnetic Reference' 
             ):
-                return False
+                Gravity_Success = False
+            
 
         # Bias estimation
         if self.correct_bias:
             if not self.call_service_and_wait(
                 self.bias_cli,
                 Trigger.Request(),
-                "Bias Estimation",
+                ' Bias Estimation' ,
                 timeout=60.0
             ):
-                return False
+                BiasCorrection_Success = False
 
         # Start port publishing
         if not self.call_service_and_wait(
             self.port_publishing_cli,
             SetBool.Request(data=True),
-            "Port Publishing"
+            ' Port Publishing' 
         ):
-            return False
+            PortPublishing_Success = False
 
-        return True
+        return (Port1Data_Success and 
+                Port1DataRate_Success and 
+                Port2Data_Success and 
+                Port2DataRate_Success and 
+                Gravity_Success and 
+                BiasCorrection_Success and 
+                PortPublishing_Success)
 
     def send_dvl_enable(self):
         msg = ConfigCommand()
@@ -288,20 +309,17 @@ class Initializer(Node):
 
         return
 
-    def _call_service_and_wait(self, client, request, operation_name, timeout=10.0):
-        """Call service and wait for response using executor spinning"""
+    # Call the configuration services and wait for them to complete
+    def call_service_and_wait(self, client, request, operation_name, timeout=10.0):
         
         self.get_logger().info(f"Starting {operation_name}...")
         
         # Make the service call
         future = client.call_async(request)
         
-        # Use executor to wait for the future
+        # Wait for service to complete
         start_time = time.time()
         while not future.done():
-            # Allow other callbacks to be processed
-            rclpy.spin_once(self, timeout_sec=0.1)
-            
             if time.time() - start_time > timeout:
                 self.get_logger().error(f"{operation_name} timed out after {timeout} seconds")
                 return False
@@ -324,12 +342,23 @@ class Initializer(Node):
             self.get_logger().error(f"{operation_name} failed with exception: {str(e)}")
             return False
 
+
 def main(args=None):
     rclpy.init(args=args)
+    
+    # Use MultiThreadedExecutor instead of default single-threaded
+    executor = rclpy.executors.MultiThreadedExecutor()
     node = Initializer()
-    rclpy.spin(node)
-    node.destroy_node()
-    rclpy.shutdown()
+    executor.add_node(node)
+    
+    try:
+        executor.spin()
+    except KeyboardInterrupt:
+        pass
+    finally:
+        executor.remove_node(node)
+        node.destroy_node()
+        rclpy.shutdown()
 
 
 if __name__ == '__main__':

@@ -75,11 +75,11 @@ private:
     imu_msg.linear_acceleration.x -= gravity_body.x();
     imu_msg.linear_acceleration.y -= gravity_body.y();
     imu_msg.linear_acceleration.z -= gravity_body.z();
-    
-    imu_msg.linear_acceleration_covariance[0] = 0.002; 
-    imu_msg.linear_acceleration_covariance[4] = 0.002; 
-    imu_msg.linear_acceleration_covariance[8] = 0.002; 
-    
+
+    imu_msg.linear_acceleration_covariance[0] = 0.002;
+    imu_msg.linear_acceleration_covariance[4] = 0.002;
+    imu_msg.linear_acceleration_covariance[8] = 0.002;
+
     compensated_pub->publish(imu_msg);
 
   }
