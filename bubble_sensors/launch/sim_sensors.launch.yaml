@@ -109,6 +109,7 @@ launch:
           value: "/mavros/imu/data_comped"
         - name: "gravity_strength"
           value: 9.80665
+          
   #Initializer Node:
   - node:
       pkg: bubble_sensors
@@ -118,6 +119,8 @@ launch:
       - from: $(find-pkg-share bubble_sensors)/config/sensor_config.yaml
       - name: use_imu
         value: $(var use_imu)
+      - name: use_sim_time
+        value: true
 
   # Define the transformations from the base link into the dvl and imu frames
   - node:

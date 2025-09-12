@@ -16,12 +16,11 @@ from bubble_sensors.srv import ConfigureVN100
 from dvl_msgs.msg import ConfigCommand
 from geographic_msgs.msg import GeoPointStamped
 from geometry_msgs.msg import PoseWithCovarianceStamped
-from rclpy.callback_groups import MutuallyExclusiveCallbackGroup, ReentrantCallbackGroup
+from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 import rclpy
 from rclpy.node import Node
 from rclpy.task import Future
 from std_srvs.srv import SetBool, Trigger
-import threading
 
 
 class Initializer(Node):
@@ -131,12 +130,11 @@ class Initializer(Node):
         self.global_pub = self.create_publisher(
             GeoPointStamped,
             '/mavros/global_position/set_gp_origin', 10)
+        
         self.local_pub = self.create_publisher(
             PoseWithCovarianceStamped,
-            '/mavros/local_position/pose_cov', 10)
-        self.ekf_set_pub = self.create_publisher(
-            PoseWithCovarianceStamped,
             '/set_pose', 10)
+        
         self.dvl_publisher = self.create_publisher(
             ConfigCommand,
             '/dvl/config/command', 10)
@@ -198,7 +196,7 @@ class Initializer(Node):
                 port='port1', 
                 msg=f'VNWRG,06,{self.port1_data_register},1'
             ),
-            ' Port 1 Data Type' 
+            'Port 1 Data Type' 
         ):
             Port1Data_Success = False
 
@@ -209,7 +207,7 @@ class Initializer(Node):
                 port='port1',
                 msg=f'VNWRG,07,{self.port1_frequency},1'
             ),
-            ' Port 1 Data Rate' 
+            'Port 1 Data Rate' 
         ):
             Port1DataRate_Success = False
 
@@ -220,7 +218,7 @@ class Initializer(Node):
                 port='port1',
                 msg=f'VNWRG,06,{self.port2_data_register},2'
             ),
-            ' Port 2 Data Type' 
+            'Port 2 Data Type' 
         ):
             Port2Data_Success = False
 
@@ -231,7 +229,7 @@ class Initializer(Node):
                 port='port1',
                 msg=f'VNWRG,07,{self.port2_frequency},2'
             ),
-            ' Port 2 Data Rate' 
+            'Port 2 Data Rate' 
         ):
             Port2DataRate_Success = False
 
@@ -243,7 +241,7 @@ class Initializer(Node):
                     port='port1',
                     msg=f'VNWRG,21,{self.mag_ref_x},{self.mag_ref_y},{self.mag_ref_z},0,0,{self.gravity}'
                 ),
-                ' Gravity and Magnetic Reference' 
+                'Gravity and Magnetic Reference' 
             ):
                 Gravity_Success = False
             
@@ -253,7 +251,7 @@ class Initializer(Node):
             if not self.call_service_and_wait(
                 self.bias_cli,
                 Trigger.Request(),
-                ' Bias Estimation' ,
+                'Bias Estimation' ,
                 timeout=60.0
             ):
                 BiasCorrection_Success = False
@@ -262,7 +260,7 @@ class Initializer(Node):
         if not self.call_service_and_wait(
             self.port_publishing_cli,
             SetBool.Request(data=True),
-            ' Port Publishing' 
+            'Port Publishing' 
         ):
             PortPublishing_Success = False
 
@@ -296,13 +294,25 @@ class Initializer(Node):
         # Set reference local position to zero
         local_msg = PoseWithCovarianceStamped()
         local_msg.header.frame_id = 'map'
-        local_msg.header.stamp = self.get_clock().now().to_msg()
+        current_time = self.get_clock().now()
+        reset_time = current_time - rclpy.duration.Duration(seconds=1.0)
+        local_msg.header.stamp = reset_time.to_msg()
         local_msg.pose.pose.position.x = 0.0
         local_msg.pose.pose.position.y = 0.0
         local_msg.pose.pose.position.z = 0.0
         local_msg.pose.pose.orientation.w = 1.0
+
+        covariance = [0.0] * 36
+        covariance[0] = 1e-6   # x position - high confidence but not infinite
+        covariance[7] = 1e-6   # y position - high confidence but not infinite  
+        covariance[14] = 1e6   # z position - low confidence (let sensors handle this)
+        covariance[21] = 1e6   # roll - low confidence (let IMU handle this)
+        covariance[28] = 1e6   # pitch - low confidence (let IMU handle this)
+        covariance[35] = 1e6   # yaw - low confidence (let IMU handle this)
+        
+        local_msg.pose.covariance = covariance
+    
         self.local_pub.publish(local_msg)
-        self.ekf_set_pub.publish(local_msg)
         self.get_logger().info('Published reference local position.')
 
         # TODO: Add automatic checking that this worked and output it as a boolean
