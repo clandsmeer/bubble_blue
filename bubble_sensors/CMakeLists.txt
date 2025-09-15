@@ -61,7 +61,13 @@ ament_target_dependencies(mavros_sensor_plugin
 # Tells mavros where to look for mavros plugins belonging to bubble_sensors
 pluginlib_export_plugin_description_file(mavros mavros_plugins.xml)
 
-install(TARGETS generic_sensor_publisher performance_dvl sim_imu_message_converter gravity_compensator mavros_sensor_plugin dvl_message_converter
+install(
+  TARGETS generic_sensor_publisher 
+  performance_dvl 
+  sim_imu_message_converter 
+  gravity_compensator 
+  mavros_sensor_plugin 
+  dvl_message_converter
   EXPORT export_${PROJECT_NAME}
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
