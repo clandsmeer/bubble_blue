@@ -42,7 +42,7 @@ launch:
       exec: dvl_message_converter
       param:
         - from: $(find-pkg-share bubble_sensors)/config/sensor_config.yaml
-    
+
   - node:
       pkg: bubble_sensors
       exec: gravity_compensator
