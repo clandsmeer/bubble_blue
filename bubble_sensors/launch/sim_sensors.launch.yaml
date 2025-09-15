@@ -68,7 +68,7 @@ launch:
   #Have a placeholder vn manager node for initialization process testing
   - node:
       pkg: bubble_sensors
-      if: $(var use_imu)
+      if: $(var use_vn100)
       exec: sim_vectornav_manager.py
       output: screen
       param:
@@ -117,8 +117,8 @@ launch:
       output: screen
       param:
       - from: $(find-pkg-share bubble_sensors)/config/sensor_config.yaml
-      - name: use_imu
-        value: $(var use_imu)
+      - name: use_vn100
+        value: $(var use_vn100)
       - name: use_sim_time
         value: true
 

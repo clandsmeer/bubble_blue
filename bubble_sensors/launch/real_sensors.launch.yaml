@@ -5,7 +5,11 @@ launch:
       default: "true"
 
   - arg:
-      name: use_imu
+      name: use_vn100
+      default: "true"
+
+  - arg:
+      name: use_AS_imu
       default: "true"
 
   - arg:
@@ -18,7 +22,7 @@ launch:
 
   - node:
       pkg: bubble_sensors
-      if: $(var use_imu)
+      if: $(var use_vn100)
       exec: vectornav_manager.py
       output: screen
       param:
@@ -38,6 +42,18 @@ launch:
       exec: dvl_message_converter
       param:
         - from: $(find-pkg-share bubble_sensors)/config/sensor_config.yaml
+    
+  - node:
+      pkg: bubble_sensors
+      exec: gravity_compensator
+      if: $(var use_AS_imu)
+      param:
+        - name: "input_topic"
+          value: "/mavros/imu/data"
+        - name: "output_topic"
+          value: "/mavros/imu/data_comped"
+        - name: "gravity_strength"
+          value: 9.80665
 
   #Initializer Node:
   - node:
@@ -46,8 +62,8 @@ launch:
       output: screen
       param:
       - from: $(find-pkg-share bubble_sensors)/config/sensor_config.yaml
-      - name: use_imu
-        value: $(var use_imu)
+      - name: use_vn100
+        value: $(var use_vn100)
 
   # Define the transformations from the base link into the dvl and imu frames
   - node:

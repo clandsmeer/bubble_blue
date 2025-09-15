@@ -238,7 +238,8 @@ class Initializer(Node):
                 self.config_cli,
                 ConfigureVN100.Request(
                     port='port1',
-                    msg=f'VNWRG,21,{self.mag_ref_x},{self.mag_ref_y},{self.mag_ref_z},0,0,{self.gravity}'
+                    msg=(f'VNWRG,21,{self.mag_ref_x},{self.mag_ref_y},{self.mag_ref_z},'
+                         f'0,0,{self.gravity}')
                 ),
                 'Gravity and Magnetic Reference'
             ):
