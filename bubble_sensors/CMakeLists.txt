@@ -62,11 +62,11 @@ ament_target_dependencies(mavros_sensor_plugin
 pluginlib_export_plugin_description_file(mavros mavros_plugins.xml)
 
 install(
-  TARGETS generic_sensor_publisher 
-  performance_dvl 
-  sim_imu_message_converter 
-  gravity_compensator 
-  mavros_sensor_plugin 
+  TARGETS generic_sensor_publisher
+  performance_dvl
+  sim_imu_message_converter
+  gravity_compensator
+  mavros_sensor_plugin
   dvl_message_converter
   EXPORT export_${PROJECT_NAME}
   ARCHIVE DESTINATION lib
