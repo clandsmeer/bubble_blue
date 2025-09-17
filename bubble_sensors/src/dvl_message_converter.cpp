@@ -55,7 +55,8 @@ private:
       geometry_msgs::msg::TwistWithCovarianceStamped converted_msg;
 
     // transfer the header
-      converted_msg.header = msg.header;
+      converted_msg.header.stamp = msg.header.stamp;
+      converted_msg.header.frame_id = "dvl_link";
 
     //put in the velcity measurement
       converted_msg.twist.twist.linear = msg.velocity;

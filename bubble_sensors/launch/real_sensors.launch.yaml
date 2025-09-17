@@ -70,7 +70,7 @@ launch:
       pkg: tf2_ros
       exec: static_transform_publisher
       name: base_link_to_dvl
-      args: --x -0.15 --y 0.0 --z -0.12 --roll 0.0 --pitch 0.0 --yaw 0.0 --frame-id base_link_frd --child-frame-id dvl_a50
+      args: --x -0.15 --y 0.0 --z -0.12 --roll 0.0 --pitch 0.0 --yaw 0.0 --frame-id base_link_frd --child-frame-id dvl_link
 
   - node:
       pkg: tf2_ros

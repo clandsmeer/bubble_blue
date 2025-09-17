@@ -41,7 +41,7 @@
               <noise type="gaussian">
                 <mean>0.0</mean>
                 <stddev>0.013734</stddev>
-                <bias_mean>0.0</bias_mean>
+                <bias_mean>5</bias_mean>
                 <bias_stddev>0.0003924</bias_stddev>
               </noise>
             </x>
@@ -49,7 +49,7 @@
               <noise type="gaussian">
                 <mean>0.0</mean>
                 <stddev>0.013734</stddev>
-                <bias_mean>0.0</bias_mean>
+                <bias_mean>5</bias_mean>
                 <bias_stddev>0.0003924</bias_stddev>
               </noise>
             </y>
@@ -57,7 +57,7 @@
               <noise type="gaussian">
                 <mean>0.0</mean>
                 <stddev>0.013734</stddev>
-                <bias_mean>0.0</bias_mean>
+                <bias_mean>5</bias_mean>
                 <bias_stddev>0.0003924</bias_stddev>
               </noise>
             </z>

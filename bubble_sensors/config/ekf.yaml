@@ -6,6 +6,9 @@ ekf_filter_node:
       two_d_mode: false
 
       publish_tf: false
+      smooth_lagged_data: true
+      history_length: 1.0
+      publish_acceleration: true
 
       print_diagnostics: true
 
@@ -39,15 +42,15 @@ ekf_filter_node:
         0.0,    0.0,    0.0,    1e-4, 0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,
         0.0,    0.0,    0.0,    0.0,    1e-4, 0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,
         0.0,    0.0,    0.0,    0.0,    0.0,    1e-4, 0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,
-        0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    1e-1, 0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,
-        0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    1e-1, 0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,
-        0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    1e-1, 0.0,    0.0,    0.0,    0.0,    0.0,    0.0,
+        0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    1e-2, 0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,
+        0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    1e-2, 0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,
+        0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    1e-2, 0.0,    0.0,    0.0,    0.0,    0.0,    0.0,
         0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    1e-3, 0.0,    0.0,    0.0,    0.0,    0.0,
         0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    1e-3, 0.0,    0.0,    0.0,    0.0,
         0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    1e-3, 0.0,    0.0,    0.0,
-        0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    1e-2, 0.0,    0.0,
-        0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    1e-2, 0.0,
-        0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    1e-2]
+        0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    1e3, 0.0,    0.0,
+        0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    1e3, 0.0,
+        0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    0.0,    1e3]
 
       # Only use output z from mavros, since they have high-quality z prediction from barometer
       odom0: /mavros/local_position/odom
@@ -65,7 +68,7 @@ ekf_filter_node:
                       false, false, false,
                       false, false, false]
 
-      # Now configure the data coming from the vectornav IMU
+      #Now configure the data coming from the vectornav IMU
       pose0: /vectornav/filtered_orientation
       pose0_config: [false, false, false,
                       true, true, true,
@@ -81,16 +84,16 @@ ekf_filter_node:
                       true, true, true]
 
       # Add the sensor output from mavros
-      imu1: /mavros/imu/data_comped
-      imu1_config: [false, false, false,
-                      false, false, false,
-                      false, false, false,
-                      true, true, true,
-                      true, true, true]
+      # imu1: /mavros/imu/data_comped
+      # imu1_config: [false, false, false,
+      #                 false, false, false,
+      #                 false, false, false,
+      #                 true, true, true,
+      #                 true, true, true]
 
-      pose1: /mavros/local_position/pose_cov
-      pose1_config: [true, true, false,
-                     false, false, false,
-                     false, false, false,
-                     false, false, false,
-                     false, false, false]
+      # pose1: /mavros/local_position/pose_cov
+      # pose1_config: [true, true, false,
+      #                false, false, false,
+      #                false, false, false,
+      #                false, false, false,
+      #                false, false, false]
