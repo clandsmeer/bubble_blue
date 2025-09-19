@@ -33,11 +33,13 @@ add_executable(performance_dvl src/waterlinked_performance_dvl.cpp)
 add_executable(sim_imu_message_converter src/sim_imu_message_converter.cpp)
 add_executable(gravity_compensator src/gravity_compensator.cpp)
 add_executable(dvl_message_converter src/dvl_message_converter.cpp)
+add_executable(synchronizer src/synchronizer.cpp)
 ament_target_dependencies(generic_sensor_publisher rclcpp nav_msgs)
 ament_target_dependencies(performance_dvl rclcpp nav_msgs geometry_msgs tf2 tf2_ros tf2_geometry_msgs)
 ament_target_dependencies(sim_imu_message_converter rclcpp nav_msgs sensor_msgs tf2 tf2_ros tf2_geometry_msgs)
 ament_target_dependencies(gravity_compensator rclcpp nav_msgs sensor_msgs tf2 tf2_ros tf2_geometry_msgs)
 ament_target_dependencies(dvl_message_converter rclcpp geometry_msgs dvl_msgs)
+ament_target_dependencies(synchronizer rclcpp geometry_msgs sensor_msgs)
 
 add_library(mavros_sensor_plugin SHARED src/mavros_sensor_plugin.cpp)
 target_include_directories(mavros_sensor_plugin PUBLIC
@@ -68,6 +70,7 @@ install(
   gravity_compensator
   mavros_sensor_plugin
   dvl_message_converter
+  synchronizer
   EXPORT export_${PROJECT_NAME}
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib

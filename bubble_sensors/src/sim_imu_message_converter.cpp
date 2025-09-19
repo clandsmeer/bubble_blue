@@ -84,14 +84,18 @@ private:
     imu_msg.linear_acceleration.y += gravity_body.y();
     imu_msg.linear_acceleration.z += gravity_body.z();
 
+    imu_msg.orientation_covariance[0] = 0.0005;
+    imu_msg.orientation_covariance[4] = 0.0005;
+    imu_msg.orientation_covariance[8] = 0.0005;
+
         //Now separating out into the two message types:
     pose_msg.header.stamp = msg.header.stamp;
     pose_msg.header.frame_id = msg.header.frame_id;
 
     pose_msg.pose.pose.orientation = msg.orientation;
-    pose_msg.pose.covariance[21] = msg.orientation_covariance[0];
-    pose_msg.pose.covariance[28] = msg.orientation_covariance[4];
-    pose_msg.pose.covariance[35] = msg.orientation_covariance[8];
+    pose_msg.pose.covariance[21] = 0.0005;
+    pose_msg.pose.covariance[28] = 0.0005;
+    pose_msg.pose.covariance[35] = 0.0005;
 
     accel_pub->publish(imu_msg);
     orient_pub->publish(pose_msg);

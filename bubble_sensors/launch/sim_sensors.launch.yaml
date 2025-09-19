@@ -48,9 +48,9 @@ launch:
       exec: performance_dvl
       param:
         - name: noise_stddev
-          value: 0.0
+          value: 0.002
         - name: bias
-          value: 0.0
+          value: 0.00005
         - name: long_term_inaccuracy_percentage
           value: 0.1
         - name: resolution_mms
