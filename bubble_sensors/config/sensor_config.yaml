@@ -55,3 +55,10 @@ dvl_message_converter:
   ros__parameters:
     input_topic: "/dvl/data"
     output_topic: "/dvl/twist_data"
+
+synchronizer:
+  ros__parameters:
+    publishing_frequency: 30.0
+    imu_accels_input_topic: "/vectornav/Imu_body"
+    imu_orient_input_topic: "/vectornav/filtered_orientation"
+    dvl_input_topic: "/dvl/twist_data"
