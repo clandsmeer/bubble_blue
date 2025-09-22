@@ -22,6 +22,10 @@ launch:
       default: "true"
 
   - arg:
+      name: use_blue_localization
+      default: "true"
+
+  - arg:
       name: use_imu
       default: "true"
 
@@ -146,6 +150,7 @@ launch:
 
   - include:
       file: $(find-pkg-share blue_localization)/localization.launch.py
+      if: $(var use_blue_localization)
       arg:
         - name: localization_source
           value: $(var localization_source)

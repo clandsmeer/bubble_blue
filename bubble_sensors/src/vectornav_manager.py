@@ -235,8 +235,17 @@ class VN100Manager(Node):
                         )
 
                         # create the header for the message
-                        imu_message.header.frame_id = 'base_link_frd'
+                        imu_message.header.frame_id = 'vectornav'
                         imu_message.header.stamp = self.get_clock().now().to_msg()
+
+                        # actually publish the message
+                        self.imu_pub.publish(imu_message)
+
+                    elif msg_type == '$VNERR':
+                        # there is some error in the vn100, print it to the logger
+                        self.get_logger().error(
+                            f'Error code {parsed_msg[1]} in vn100 node'
+                        )
 
                         # actually publish the message
                         self.imu_pub.publish(imu_message)

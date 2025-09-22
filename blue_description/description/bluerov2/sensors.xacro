@@ -12,7 +12,7 @@
     <!-- Import DVL sensor -->
     <xacro:include filename="$(find blue_description)/description/dvl/urdf.xacro" />
     <xacro:dvl_urdf prefix="$(arg prefix)" parent="$(arg prefix)base_link">
-      <origin rpy="3.1416 0 0" xyz="0.0 0.0 -0.2" />
+      <origin rpy="3.1416 0 0" xyz="0.0 0.0 -0.12" />
     </xacro:dvl_urdf>
 
     <!-- Add Gazebo sensor plugins if in simulation -->

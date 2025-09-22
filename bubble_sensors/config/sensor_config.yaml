@@ -39,8 +39,8 @@ vectornav_manager:
     baudrate: 115200
     print_output: false
     read_time: 2.0
-    imu_accel_cov: 0.5
-    imu_ang_vel_covariance: 0.1
+    imu_accel_cov: 0.0001
+    imu_ang_vel_covariance: 0.000001
     imu_orientation_cov: 0.05
     init_kf_orient_cov: 0.01
     bias_averaging_time: 45.0
@@ -55,3 +55,10 @@ dvl_message_converter:
   ros__parameters:
     input_topic: "/dvl/data"
     output_topic: "/dvl/twist_data"
+
+synchronizer:
+  ros__parameters:
+    publishing_frequency: 30.0
+    imu_accels_input_topic: "/vectornav/Imu_body"
+    imu_orient_input_topic: "/vectornav/filtered_orientation"
+    dvl_input_topic: "/dvl/twist_data"
