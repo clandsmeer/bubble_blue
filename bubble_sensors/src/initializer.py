@@ -287,7 +287,7 @@ class Initializer(Node):
         local_msg = PoseWithCovarianceStamped()
         local_msg.header.frame_id = 'map'
         current_time = self.get_clock().now()
-        reset_time = current_time #- rclpy.duration.Duration(seconds=1.0)
+        reset_time = current_time # - rclpy.duration.Duration(seconds=1.0)
         local_msg.header.stamp = reset_time.to_msg()
         local_msg.pose.pose.position.x = 0.0
         local_msg.pose.pose.position.y = 0.0
