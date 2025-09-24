@@ -103,7 +103,7 @@ private:
   void dvl_config_callback(const dvl_msgs::msg::ConfigCommand & config_msg)
   {
     if (config_msg.command == "set_config" && config_msg.parameter_name == "acoustic_enabled"){
-      //setting accoustic enabled, see what the desired setting is
+      //setting acoustic enabled, see what the desired setting is
       if (config_msg.parameter_value == "true"){
         acoustic_enabled = true;
         RCLCPP_INFO(this->get_logger(), "DVL Acoustic Has Been Enabled!");
