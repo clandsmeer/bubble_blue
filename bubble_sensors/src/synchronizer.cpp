@@ -102,26 +102,31 @@ private:
   void imu_accel_sub_callback(const sensor_msgs::msg::Imu & accel_msg)
   {
     latest_imu_accel_msg_ = accel_msg;
+    vn100_accel_msg_time_ = rclcpp::Time(latest_imu_accel_msg_.header.stamp);
   }
 
   void imu_orient_sub_callback(const geometry_msgs::msg::PoseWithCovarianceStamped & orient_msg)
   {
     latest_imu_orient_msg_ = orient_msg;
+    vn100_orient_msg_time_ = rclcpp::Time(latest_imu_orient_msg_.header.stamp);
   }
 
   void dvl_sub_callback(const geometry_msgs::msg::TwistWithCovarianceStamped & dvl_msg)
   {
     latest_dvl_msg_ = dvl_msg;
+    dvl_msg_time_ = rclcpp::Time(latest_dvl_msg_.header.stamp);
   }
 
   void ardusub_imu_sub_callback(const sensor_msgs::msg::Imu & ardusub_imu_msg)
   {
     latest_ardusub_imu_msg_ = ardusub_imu_msg;
+    ardusub_imu_msg_time_ = rclcpp::Time(latest_ardusub_imu_msg_.header.stamp);
   }
 
   void synchronizer_callback()
   {
     rclcpp::Time synced_time = this->now();
+    double synced_time_sec = synced_time.seconds();
 
       // For each message type, only publish once the message if the header has been updated.
       // This ensures that it does not publish zeros before sensor reading have come in
@@ -129,8 +134,7 @@ private:
       latest_imu_accel_msg_.header.stamp.nanosec != 0)
     {
       // now enforce the constraint on message delay
-      rclcpp::Time msg_time(latest_imu_accel_msg_.header.stamp);
-      double time_delay = synced_time.seconds() - msg_time.seconds();
+      double time_delay = synced_time_sec - vn100_accel_msg_time_.seconds();
       if (time_delay <= max_measurement_delay_sec_) {
         latest_imu_accel_msg_.header.stamp = synced_time;
         imu_accels_pub_->publish(latest_imu_accel_msg_);
@@ -143,8 +147,7 @@ private:
     if (latest_imu_orient_msg_.header.stamp.sec != 0 ||
       latest_imu_orient_msg_.header.stamp.nanosec != 0)
     {
-      rclcpp::Time msg_time(latest_imu_orient_msg_.header.stamp);
-      double time_delay = synced_time.seconds() - msg_time.seconds();
+      double time_delay = synced_time_sec - vn100_orient_msg_time_.seconds();
       if (time_delay <= max_measurement_delay_sec_) {
         latest_imu_orient_msg_.header.stamp = synced_time;
         imu_orient_pub_->publish(latest_imu_orient_msg_);
@@ -155,8 +158,7 @@ private:
     }
 
     if (latest_dvl_msg_.header.stamp.sec != 0 || latest_dvl_msg_.header.stamp.nanosec != 0) {
-      rclcpp::Time msg_time(latest_dvl_msg_.header.stamp);
-      double time_delay = synced_time.seconds() - msg_time.seconds();
+      double time_delay = synced_time_sec - dvl_msg_time_.seconds();
       if (time_delay <= max_measurement_delay_sec_) {
         latest_dvl_msg_.header.stamp = synced_time;
         dvl_pub_->publish(latest_dvl_msg_);
@@ -169,8 +171,7 @@ private:
     if (latest_ardusub_imu_msg_.header.stamp.sec != 0 ||
       latest_ardusub_imu_msg_.header.stamp.nanosec != 0)
     {
-      rclcpp::Time msg_time(latest_ardusub_imu_msg_.header.stamp);
-      double time_delay = synced_time.seconds() - msg_time.seconds();
+      double time_delay = synced_time_sec - ardusub_imu_msg_time_.seconds();
       if (time_delay <= max_measurement_delay_sec_) {
         latest_ardusub_imu_msg_.header.stamp = synced_time;
         ardusub_imu_pub_->publish(latest_ardusub_imu_msg_);
@@ -205,6 +206,12 @@ private:
   geometry_msgs::msg::PoseWithCovarianceStamped latest_imu_orient_msg_;
   geometry_msgs::msg::TwistWithCovarianceStamped latest_dvl_msg_;
   sensor_msgs::msg::Imu latest_ardusub_imu_msg_;
+
+  // For tracking the latest message time
+  rclcpp::Time vn100_accel_msg_time_;
+  rclcpp::Time vn100_orient_msg_time_;
+  rclcpp::Time dvl_msg_time_;
+  rclcpp::Time ardusub_imu_msg_time_;
 
 };
 
