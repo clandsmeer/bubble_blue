@@ -86,7 +86,7 @@ private:
   {
     // Transform the odometry into a velocity at the DVL frame
     try {
-      if (acoustic_enabled){
+      if (acoustic_enabled) {
         tf2::Vector3 v_dvl = get_dvl_velocity(msg);
 
         // Transform the velocity at the dvl frame into a noisy TwistWithCovariance Message
@@ -102,9 +102,9 @@ private:
   }
   void dvl_config_callback(const dvl_msgs::msg::ConfigCommand & config_msg)
   {
-    if (config_msg.command == "set_config" && config_msg.parameter_name == "acoustic_enabled"){
+    if (config_msg.command == "set_config" && config_msg.parameter_name == "acoustic_enabled") {
       //setting acoustic enabled, see what the desired setting is
-      if (config_msg.parameter_value == "true"){
+      if (config_msg.parameter_value == "true") {
         acoustic_enabled = true;
         RCLCPP_INFO(this->get_logger(), "DVL Acoustic Has Been Enabled!");
       } else {
