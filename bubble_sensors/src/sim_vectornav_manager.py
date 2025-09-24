@@ -14,7 +14,7 @@ service calls and records successful service calls
 from bubble_sensors.srv import ConfigureVN100
 import rclpy
 from rclpy.node import Node
-from std_srvs.srv import SetBool, Trigger
+from std_srvs.srv import Trigger
 
 
 class SimVN100Manager(Node):
@@ -30,11 +30,6 @@ class SimVN100Manager(Node):
         self.bias_srv = self.create_service(Trigger,
                                             'estimate_bias',
                                             self.estimate_biases)
-
-        # Create service for starting and stopping the serial port process
-        self.read_srv = self.create_service(SetBool,
-                                            'set_reading_status',
-                                            self.toggle_reading_status)
 
         self.get_logger().info(
             'VN100 Command Node is Running. Use the /ConfigureVN100 service call '
@@ -59,13 +54,6 @@ class SimVN100Manager(Node):
         response.success = True
         response.message = 'VN100 bias estimated.'
         self.get_logger().info('Handle Port Finished Correctly. Sending Response')
-        return response
-
-    def toggle_reading_status(self, request, response):
-        self.get_logger().info(
-            'Simulation received Command to Toggle Reading Status to {request.data}')
-        response.success = True
-        response.message = f'Updated Publishing Data to {request.data}'
         return response
 
 

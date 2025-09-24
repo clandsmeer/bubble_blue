@@ -10,6 +10,8 @@ data and kalman-filterred orientation data from the real IMU
 #include "rclcpp/rclcpp.hpp"
 #include <sensor_msgs/msg/imu.hpp>
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
+#include <std_srvs/srv/set_bool.hpp>
+#include <rmw/qos_profiles.h>
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2/LinearMath/Matrix3x3.h>
 #include <tf2/LinearMath/Vector3.h>
@@ -55,12 +57,20 @@ public:
                                                             orient_topic_name_,
                                                             10);
 
+    ports_publishing_service = this->create_service<std_srvs::srv::SetBool>(
+                                                            "/set_reading_status",
+                                                            std::bind(&SimImuMessageConverter::ports_publishing_callback, this, std::placeholders::_1, std::placeholders::_2));
+
+    ports_publishing = false;
+
+    RCLCPP_INFO(this->get_logger(), "Sim IMU Message Converter Has Started.");
   }
 
 private:
   void imu_msg_received_callback(const sensor_msgs::msg::Imu & msg)
   {
-        //create two new messages to send, one Imu and the other pose w/ cov
+    if (ports_publishing){
+          //create two new messages to send, one Imu and the other pose w/ cov
     sensor_msgs::msg::Imu imu_msg = msg;
     geometry_msgs::msg::PoseWithCovarianceStamped pose_msg;
 
@@ -99,8 +109,21 @@ private:
 
     accel_pub->publish(imu_msg);
     orient_pub->publish(pose_msg);
+    }
 
   }
+
+  void ports_publishing_callback(const std::shared_ptr<std_srvs::srv::SetBool::Request> request,
+                                 std::shared_ptr<std_srvs::srv::SetBool::Response> response)
+                                 {
+                                  // set the ports_publishing parameter to the
+                                  ports_publishing = request->data;
+
+                                 // send successful response
+                                  response->success = true;
+                                  response->message = std::string("Updated Publishing Data to ") + (ports_publishing ? "true" : "false");
+                                 }
+
     //Declaring the ros2 parameters for the node
   std::string input_topic_name_;
   std::string accel_topic_name_;
@@ -112,6 +135,8 @@ private:
   rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr accel_pub;
   rclcpp::Publisher<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr orient_pub;
 
+  rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr ports_publishing_service;
+  bool ports_publishing;
 };
 
 // define the main function which actually spins the sensor up
