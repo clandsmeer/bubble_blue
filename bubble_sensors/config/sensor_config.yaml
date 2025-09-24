@@ -1,3 +1,9 @@
+# =======================================
+#        REAL SENSOR CONFIGURATION
+# =======================================
+# FOR SIMULATED SENSOR PARAMETERS, GO TO
+# THE BOTTOM OF THE FILE
+
 # Configuration for the Initializer.
 # This defines most of the initial conditions of the robot,
 # and includes some configuration parameters like data type
@@ -17,10 +23,6 @@ initializer:
     init_pose_x: 0.0
     init_pose_y: 0.0
     init_pose_z: 0.0
-
-    rot_matrix_imu_to_body: [1.0, 0.0, 0.0,
-                             0.0, 0.0, -1.0,
-                             0.0, 1.0, 0.0]
 
     mag_ref_x: 0.22 #Zurich Magnetic Field
     mag_ref_y: 0.03
@@ -56,9 +58,55 @@ dvl_message_converter:
     input_topic: "/dvl/data"
     output_topic: "/dvl/twist_data"
 
+# Configuration for the sensor synchronizer
 synchronizer:
   ros__parameters:
     publishing_frequency: 30.0
     imu_accels_input_topic: "/vectornav/Imu_body"
     imu_orient_input_topic: "/vectornav/filtered_orientation"
     dvl_input_topic: "/dvl/twist_data"
+
+# Gravity Compensator(Used in sim and real life)
+gravity_compensator:
+  ros__parameters:
+    input_topic: "/mavros/imu/data"
+    output_topic: "/mavros/imu/data_comped"
+    gravity_strength: 9.80665
+
+# =======================================
+#     SIMULATED SENSOR CONFIGURATION
+# =======================================
+# FOR REAL SENSOR CONFIGURATION, GO TO THE
+# TOP OF THIS FILE.
+
+# Configuring The Generalized Sensor For Rapid Prototyping
+generic_sensor_publisher:
+  ros__parameters:
+    noise_stddev: 0.05
+    position_meas: true
+    angular_meas: true
+    pos_twist: true
+    angular_twist: true
+    input_topic: "/model/bluerov2/odometry"
+    output_topic: "/sensors/generalized_sensor_test"
+    use_sim_time: true
+
+# Configuring the Simulated DVL
+simulated_dvl:
+  ros__parameters:
+    noise_stddev: 0.002
+    bias: 0.00005
+    long_term_inaccuracy_percentage: 0.1
+    resolution_mms: 0.1
+    angular_twist: false
+    input_topic: "/model/bluerov2/odometry"
+    output_topic: "/dvl/twist_data"
+    use_sim_time: true
+
+# Simulated IMU Message Converter
+sim_imu_message_converter:
+  ros__parameters:
+    input_topic: "/vectornav/Imu_raw"
+    output_topic_accel: "/vectornav/Imu_body"
+    output_topic_orient: "/vectornav/filtered_orientation"
+    gravity_strength: 9.8

@@ -25,44 +25,14 @@ launch:
       if: $(var use_generic)
       exec: generic_sensor_publisher
       param:
-        - name: noise_stddev
-          value: 0.05
-        - name: position_meas
-          value: true
-        - name: angular_meas
-          value: true
-        - name: pos_twist
-          value: true
-        - name: angular_twist
-          value: true
-        - name: input_topic
-          value: "/model/bluerov2/odometry"
-        - name: output_topic
-          value: "/sensors/generalized_sensor_test"
-        - name: use_sim_time
-          value: true
+        - from: $(find-pkg-share bubble_sensors)/config/sensor_config.yaml
 
   - node:
       pkg: bubble_sensors
       if: $(var use_dvl)
-      exec: performance_dvl
+      exec: simulated_dvl
       param:
-        - name: noise_stddev
-          value: 0.002
-        - name: bias
-          value: 0.00005
-        - name: long_term_inaccuracy_percentage
-          value: 0.1
-        - name: resolution_mms
-          value: 0.1
-        - name: angular_twist
-          value: false
-        - name: input_topic
-          value: "/model/bluerov2/odometry"
-        - name: output_topic
-          value: "/dvl/twist_data"
-        - name: use_sim_time
-          value: true
+        - from: $(find-pkg-share bubble_sensors)/config/sensor_config.yaml
 
   #VECTORNAV NODE HAS BEEN MOVED TO A GAZEBO SENSOR PLACED ON THE SIMULATED ROBOT,
   #Have a placeholder vn manager node for initialization process testing
@@ -89,26 +59,14 @@ launch:
       exec: sim_imu_message_converter
       if: $(var use_vn100)
       param:
-        - name: "input_topic"
-          value: "/vectornav/Imu_raw"
-        - name: "output_topic_accel"
-          value: "/vectornav/Imu_body"
-        - name: "output_topic_orient"
-          value: "/vectornav/filtered_orientation"
-        - name: "gravity_strength"
-          value: 9.8
+        - from: $(find-pkg-share bubble_sensors)/config/sensor_config.yaml
 
   - node:
       pkg: bubble_sensors
       exec: gravity_compensator
       if: $(var use_AS_imu)
       param:
-        - name: "input_topic"
-          value: "/mavros/imu/data"
-        - name: "output_topic"
-          value: "/mavros/imu/data_comped"
-        - name: "gravity_strength"
-          value: 9.80665
+        - from: $(find-pkg-share bubble_sensors)/config/sensor_config.yaml
 
   #Initializer Node:
   - node:

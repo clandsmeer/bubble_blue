@@ -247,15 +247,6 @@ class VN100Manager(Node):
                             f'Error code {parsed_msg[1]} in vn100 node'
                         )
 
-                        # actually publish the message
-                        self.imu_pub.publish(imu_message)
-
-                    elif msg_type == '$VNERR':
-                        # there is some error in the vn100, print it to the logger
-                        self.get_logger().error(
-                            f'Error code {parsed_msg[1]} in vn100 node'
-                        )
-
                     elif msg_type == '$VNYMR':
                         # This is the default, so don't worry unless the port expects
                         # to be publishing data

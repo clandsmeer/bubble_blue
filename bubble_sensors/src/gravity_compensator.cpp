@@ -1,10 +1,8 @@
 /*
 File: gravity_compensator v1.0
 Author(s): Henry Adam
-Description: This file is meant to remove the gravitational vector from the simulated IMU
-in order to make the behavior of the imu match that of the real system. In addition, it splits
-the Imu output into two different topics, reflecting the separation of the body-fixed accelerometer
-data and kalman-filterred orientation data from the real IMU
+Description: This file is meant to remove the gravitational vector from the simulated
+and real ArduSub IMU.
 */
 
 #include "rclcpp/rclcpp.hpp"
@@ -17,7 +15,7 @@ class GravityCompensator : public rclcpp::Node
 {
 public:
   GravityCompensator()
-  :Node("gravity_compensator")
+      : Node("gravity_compensator")
   {
     this->declare_parameter("input_topic", "/mavros/imu/data");
     this->declare_parameter("output_topic", "/mavros/imu/data_comped");
@@ -27,51 +25,49 @@ public:
     this->get_parameter("output_topic", output_topic_name_);
     this->get_parameter("gravity_strength", gravity_strength_);
 
-        // Create the quality of service profile for the subscriber
+    // Create the quality of service profile for the subscriber
     rmw_qos_profile_t qos_profile = rmw_qos_profile_sensor_data;
     auto qos = rclcpp::QoS(
-            rclcpp::QoSInitialization(
+        rclcpp::QoSInitialization(
             qos_profile.history,
             qos_profile.depth),
-            qos_profile);
+        qos_profile);
 
-        //Create the subscriber to the Imu Node
+    // Create the subscriber to the Imu Node
     imu_subscriber = this->create_subscription<sensor_msgs::msg::Imu>(
-                                                                    input_topic_name_,
-                                                                    qos,
-                                                                    std::bind(
-      &GravityCompensator::imu_msg_received_callback, this, std::placeholders::_1)
-    );
+        input_topic_name_,
+        qos,
+        std::bind(
+            &GravityCompensator::imu_msg_received_callback, this, std::placeholders::_1));
 
-        //Create the publishers for the acceleration data and orientation data
+    // Create the publishers for the acceleration data and orientation data
     compensated_pub = this->create_publisher<sensor_msgs::msg::Imu>(
-                                                            output_topic_name_,
-                                                            10);
-
+        output_topic_name_,
+        10);
   }
 
 private:
-  void imu_msg_received_callback(const sensor_msgs::msg::Imu & msg)
+  void imu_msg_received_callback(const sensor_msgs::msg::Imu &msg)
   {
-        //create two new messages to send, one Imu and the other pose w/ cov
+    // create two new messages to send, one Imu and the other pose w/ cov
     sensor_msgs::msg::Imu imu_msg = msg;
 
-        //remove the gravitational acceleration from the accelerometer measurement
-        //calculate the gravitational vector in the robot body frame
+    // remove the gravitational acceleration from the accelerometer measurement
+    // calculate the gravitational vector in the robot body frame
     tf2::Quaternion orient_inverse(
-      -msg.orientation.x,
-      -msg.orientation.y,
-      -msg.orientation.z,
-      msg.orientation.w);
+        -msg.orientation.x,
+        -msg.orientation.y,
+        -msg.orientation.z,
+        msg.orientation.w);
 
-        // apply the inverse orientation to the gravity vector
+    // apply the inverse orientation to the gravity vector
     tf2::Vector3 gravity_global(0, 0, gravity_strength_);
 
     tf2::Matrix3x3 inverse_rotation(orient_inverse);
 
     tf2::Vector3 gravity_body = inverse_rotation * gravity_global;
 
-        // Subtract the body-fixed gravity vector from the imu measurement
+    // Subtract the body-fixed gravity vector from the imu measurement
     imu_msg.linear_acceleration.x -= gravity_body.x();
     imu_msg.linear_acceleration.y -= gravity_body.y();
     imu_msg.linear_acceleration.z -= gravity_body.z();
@@ -81,17 +77,15 @@ private:
     imu_msg.linear_acceleration_covariance[8] = 0.002;
 
     compensated_pub->publish(imu_msg);
-
   }
-    //Declaring the ros2 parameters for the node
+  // Declaring the ros2 parameters for the node
   std::string input_topic_name_;
   std::string output_topic_name_;
   double gravity_strength_;
 
-    //Declaring the publishers and subscribers
+  // Declaring the publishers and subscribers
   rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr imu_subscriber;
   rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr compensated_pub;
-
 };
 
 // define the main function which actually spins the sensor up

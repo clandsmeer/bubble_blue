@@ -41,11 +41,6 @@ class Initializer(Node):
         self.declare_parameter('init_pose_y', 0.0)
         self.declare_parameter('init_pose_z', 0.0)
 
-        self.declare_parameter('rot_matrix_imu_to_body',
-                               [1.0, 0.0, 0.0,
-                                0.0, 0.0, -1.0,
-                                0.0, 1.0, 0.0])
-
         self.declare_parameter('mag_ref_x', 0.22)  # Zurich Magnetic Field
         self.declare_parameter('mag_ref_y', 0.03)
         self.declare_parameter('mag_ref_z', 0.89)
@@ -81,9 +76,6 @@ class Initializer(Node):
             'init_pose_y').get_parameter_value().double_value
         self.init_pose_z = self.get_parameter(
             'init_pose_z').get_parameter_value().double_value
-
-        self.imu_orientation = self.get_parameter(
-            'rot_matrix_imu_to_body').get_parameter_value().double_array_value
 
         self.mag_ref_x = self.get_parameter(
             'mag_ref_x').get_parameter_value().double_value
