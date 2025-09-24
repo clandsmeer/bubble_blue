@@ -48,12 +48,7 @@ launch:
       exec: gravity_compensator
       if: $(var use_AS_imu)
       param:
-        - name: "input_topic"
-          value: "/mavros/imu/data"
-        - name: "output_topic"
-          value: "/mavros/imu/data_comped"
-        - name: "gravity_strength"
-          value: 9.80665
+        - from: $(find-pkg-share bubble_sensors)/config/sensor_config.yaml
 
   #Initializer Node:
   - node:

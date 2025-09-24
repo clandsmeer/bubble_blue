@@ -29,13 +29,13 @@ find_package(rosidl_default_generators REQUIRED)
 
 # Add the executable and target
 add_executable(generic_sensor_publisher src/generic_sensor.cpp)
-add_executable(performance_dvl src/waterlinked_performance_dvl.cpp)
+add_executable(simulated_dvl src/simulated_dvl.cpp)
 add_executable(sim_imu_message_converter src/sim_imu_message_converter.cpp)
 add_executable(gravity_compensator src/gravity_compensator.cpp)
 add_executable(dvl_message_converter src/dvl_message_converter.cpp)
 add_executable(synchronizer src/synchronizer.cpp)
 ament_target_dependencies(generic_sensor_publisher rclcpp nav_msgs)
-ament_target_dependencies(performance_dvl rclcpp nav_msgs geometry_msgs tf2 tf2_ros tf2_geometry_msgs)
+ament_target_dependencies(simulated_dvl rclcpp nav_msgs geometry_msgs tf2 tf2_ros tf2_geometry_msgs)
 ament_target_dependencies(sim_imu_message_converter rclcpp nav_msgs sensor_msgs tf2 tf2_ros tf2_geometry_msgs)
 ament_target_dependencies(gravity_compensator rclcpp nav_msgs sensor_msgs tf2 tf2_ros tf2_geometry_msgs)
 ament_target_dependencies(dvl_message_converter rclcpp geometry_msgs dvl_msgs)
@@ -65,7 +65,7 @@ pluginlib_export_plugin_description_file(mavros mavros_plugins.xml)
 
 install(
   TARGETS generic_sensor_publisher
-  performance_dvl
+  simulated_dvl
   sim_imu_message_converter
   gravity_compensator
   mavros_sensor_plugin
@@ -84,7 +84,6 @@ install(FILES mavros_plugins.xml
 
 #install the dvl enabler
 install(PROGRAMS
-  src/dvl_enabler.py
   src/initializer.py
   src/vectornav_manager.py
   src/sim_vectornav_manager.py

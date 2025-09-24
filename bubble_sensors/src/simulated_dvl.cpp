@@ -21,11 +21,11 @@ DVL at this link: https://waterlinked.com/datasheets/dvl-a50
 #include <tf2_ros/buffer.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
-class PerformanceDVL : public rclcpp::Node
+class SimulatedDVL : public rclcpp::Node
 {
 public:
-  PerformanceDVL()
-  : Node("performance_dvl"),
+  SimulatedDVL()
+  : Node("simulated_dvl"),
     tf_buffer_(this->get_clock()),
     tf_listener_(tf_buffer_)
   {
@@ -57,7 +57,7 @@ public:
     odometry_subscription = this->create_subscription<nav_msgs::msg::Odometry>(
         input_topic_name_,
         10,
-        std::bind(&PerformanceDVL::odom_callback, this, std::placeholders::_1));
+        std::bind(&SimulatedDVL::odom_callback, this, std::placeholders::_1));
 
     measurement_publisher = this->create_publisher<geometry_msgs::msg::TwistWithCovarianceStamped>(
         output_topic_name_,
@@ -166,7 +166,8 @@ private:
                                                 resolution_) *
       resolution_;
 
-    // add covariance for state estimation pipeline. Since there is an EKF on the sensor itself, this should be provided for us
+    // add covariance for state estimation pipeline.
+    // Since there is an EKF on the sensor itself, this should be provided for us
     noisy_msg.twist.covariance[0] = cov_;
     noisy_msg.twist.covariance[7] = cov_;
     noisy_msg.twist.covariance[14] = cov_;
@@ -202,7 +203,7 @@ private:
 int main(int argc, char *argv[])
 {
   rclcpp::init(argc, argv);
-  rclcpp::spin(std::make_shared<PerformanceDVL>());
+  rclcpp::spin(std::make_shared<SimulatedDVL>());
   rclcpp::shutdown();
   return 0;
 }
