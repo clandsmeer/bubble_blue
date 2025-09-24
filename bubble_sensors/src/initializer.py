@@ -12,15 +12,14 @@ std_srvs/srv/Trigger.
 
 import time
 
-import rclpy
+from bubble_sensors.srv import ConfigureVN100
 from dvl_msgs.msg import ConfigCommand
 from geographic_msgs.msg import GeoPointStamped
 from geometry_msgs.msg import PoseWithCovarianceStamped
+import rclpy
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 from rclpy.node import Node
 from std_srvs.srv import SetBool, Trigger
-
-from bubble_sensors.srv import ConfigureVN100
 
 
 class Initializer(Node):
