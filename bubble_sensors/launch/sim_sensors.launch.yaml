@@ -26,6 +26,8 @@ launch:
       exec: generic_sensor_publisher
       param:
         - from: $(find-pkg-share bubble_sensors)/config/sensor_config.yaml
+        - name: use_sim_time
+          value: true
 
   - node:
       pkg: bubble_sensors
@@ -33,6 +35,8 @@ launch:
       exec: simulated_dvl
       param:
         - from: $(find-pkg-share bubble_sensors)/config/sensor_config.yaml
+        - name: use_sim_time
+          value: true
 
   #VECTORNAV NODE HAS BEEN MOVED TO A GAZEBO SENSOR PLACED ON THE SIMULATED ROBOT,
   #Have a placeholder vn manager node for initialization process testing
@@ -43,6 +47,8 @@ launch:
       output: screen
       param:
       - from: $(find-pkg-share bubble_sensors)/config/sensor_config.yaml
+      - name: use_sim_time
+        value: true
 
   #Use ros_gz_bridge to convert the gazebo Imu messages to ros2
   - node:
@@ -60,6 +66,8 @@ launch:
       if: $(var use_vn100)
       param:
         - from: $(find-pkg-share bubble_sensors)/config/sensor_config.yaml
+        - name: use_sim_time
+          value: true
 
   - node:
       pkg: bubble_sensors
@@ -67,6 +75,8 @@ launch:
       if: $(var use_AS_imu)
       param:
         - from: $(find-pkg-share bubble_sensors)/config/sensor_config.yaml
+        - name: use_sim_time
+          value: true
 
   #Initializer Node:
   - node:
@@ -80,18 +90,33 @@ launch:
       - name: use_sim_time
         value: true
 
+  - node:
+      pkg: bubble_sensors
+      exec: synchronizer
+      output: screen
+      param:
+      - from: $(find-pkg-share bubble_sensors)/config/sensor_config.yaml
+      - name: use_sim_time
+        value: true
+
   # Define the transformations from the base link into the dvl and imu frames
   - node:
       pkg: tf2_ros
       exec: static_transform_publisher
       name: base_link_to_dvl
       args: --x -0.15 --y 0.0 --z -0.12 --roll 0.0 --pitch 0.0 --yaw 0.0 --frame-id base_link_fsd --child-frame-id dvl_link
+      param:
+      - name: use_sim_time
+        value: true
 
   - node:
       pkg: tf2_ros
       exec: static_transform_publisher
       name: base_link_to_vn100
       args: --x 0.02 --y 0.0 --z -0.05 --roll 0.0 --pitch 0.0 --yaw 0.0 --frame-id base_link_fsd --child-frame-id vectornav
+      param:
+      - name: use_sim_time
+        value: true
 
   - include:
       if: $(var use_ekf)

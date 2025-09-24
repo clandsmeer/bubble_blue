@@ -84,7 +84,6 @@ install(FILES mavros_plugins.xml
 
 #install the dvl enabler
 install(PROGRAMS
-  src/dvl_enabler.py
   src/initializer.py
   src/vectornav_manager.py
   src/sim_vectornav_manager.py

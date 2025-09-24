@@ -12,14 +12,15 @@ std_srvs/srv/Trigger.
 
 import time
 
-from bubble_sensors.srv import ConfigureVN100
+import rclpy
 from dvl_msgs.msg import ConfigCommand
 from geographic_msgs.msg import GeoPointStamped
 from geometry_msgs.msg import PoseWithCovarianceStamped
-import rclpy
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 from rclpy.node import Node
 from std_srvs.srv import SetBool, Trigger
+
+from bubble_sensors.srv import ConfigureVN100
 
 
 class Initializer(Node):
@@ -286,7 +287,7 @@ class Initializer(Node):
         local_msg = PoseWithCovarianceStamped()
         local_msg.header.frame_id = 'map'
         current_time = self.get_clock().now()
-        reset_time = current_time - rclpy.duration.Duration(seconds=1.0)
+        reset_time = current_time #- rclpy.duration.Duration(seconds=1.0)
         local_msg.header.stamp = reset_time.to_msg()
         local_msg.pose.pose.position.x = 0.0
         local_msg.pose.pose.position.y = 0.0

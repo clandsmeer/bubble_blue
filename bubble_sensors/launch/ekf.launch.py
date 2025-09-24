@@ -30,7 +30,7 @@ def generate_launch_description():
 
     """
     # add launch delay, hardcoded for now:
-    launch_delay = 0.0
+    launch_delay = 5.0
 
     # Constants for paths to different files and folders
     package_name = 'bubble_sensors'
