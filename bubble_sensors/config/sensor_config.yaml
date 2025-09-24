@@ -58,13 +58,15 @@ dvl_message_converter:
     input_topic: "/dvl/data"
     output_topic: "/dvl/twist_data"
 
-# Configuration for the sensor synchronizer
+# Configuration for the sensor synchronizer (Used in sim and real life)
 synchronizer:
   ros__parameters:
     publishing_frequency: 30.0
     imu_accels_input_topic: "/vectornav/Imu_body"
     imu_orient_input_topic: "/vectornav/filtered_orientation"
     dvl_input_topic: "/dvl/twist_data"
+    ardusub_imu_input_topic: "/mavros/imu/data_comped"
+    max_measurement_delay_sec: 0.5 # How old can a message be and still be published
 
 # Gravity Compensator(Used in sim and real life)
 gravity_compensator:
