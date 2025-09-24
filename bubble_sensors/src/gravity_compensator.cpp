@@ -15,7 +15,7 @@ class GravityCompensator : public rclcpp::Node
 {
 public:
   GravityCompensator()
-      : Node("gravity_compensator")
+  : Node("gravity_compensator")
   {
     this->declare_parameter("input_topic", "/mavros/imu/data");
     this->declare_parameter("output_topic", "/mavros/imu/data_comped");
@@ -47,7 +47,7 @@ public:
   }
 
 private:
-  void imu_msg_received_callback(const sensor_msgs::msg::Imu &msg)
+  void imu_msg_received_callback(const sensor_msgs::msg::Imu & msg)
   {
     // create two new messages to send, one Imu and the other pose w/ cov
     sensor_msgs::msg::Imu imu_msg = msg;
@@ -55,10 +55,10 @@ private:
     // remove the gravitational acceleration from the accelerometer measurement
     // calculate the gravitational vector in the robot body frame
     tf2::Quaternion orient_inverse(
-        -msg.orientation.x,
-        -msg.orientation.y,
-        -msg.orientation.z,
-        msg.orientation.w);
+      -msg.orientation.x,
+      -msg.orientation.y,
+      -msg.orientation.z,
+      msg.orientation.w);
 
     // apply the inverse orientation to the gravity vector
     tf2::Vector3 gravity_global(0, 0, gravity_strength_);
