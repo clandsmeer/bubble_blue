@@ -11,6 +11,7 @@ DVL at this link: https://waterlinked.com/datasheets/dvl-a50
 #include "nav_msgs/msg/odometry.hpp"
 #include <geometry_msgs/msg/twist_with_covariance_stamped.hpp>
 #include <std_msgs/msg/header.hpp>
+#include <dvl_msgs/msg/config_command.hpp>
 #include <random>
 
 // for the transformations:
@@ -59,6 +60,11 @@ public:
         10,
         std::bind(&SimulatedDVL::odom_callback, this, std::placeholders::_1));
 
+    dvl_config_subscription = this->create_subscription<dvl_msgs::msg::ConfigCommand>(
+      "/dvl/config/command",
+      10,
+      std::bind(&SimulatedDVL::dvl_config_callback, this, std::placeholders::_1));
+
     measurement_publisher = this->create_publisher<geometry_msgs::msg::TwistWithCovarianceStamped>(
         output_topic_name_,
         10);
@@ -70,7 +76,7 @@ public:
     // seed the random generator:
     std::srand(std::time(0)); // seed w/ start time of program
 
-    RCLCPP_INFO(this->get_logger(), "Noisy odometry relay started.");
+    RCLCPP_INFO(this->get_logger(), "Simulated DVL Started.");
     RCLCPP_INFO(this->get_logger(), "Subscribing to: %s", input_topic_name_.c_str());
     RCLCPP_INFO(this->get_logger(), "Publishing to: %s", output_topic_name_.c_str());
   }
@@ -80,16 +86,31 @@ private:
   {
     // Transform the odometry into a velocity at the DVL frame
     try {
-      tf2::Vector3 v_dvl = get_dvl_velocity(msg);
+      if (acoustic_enabled) {
+        tf2::Vector3 v_dvl = get_dvl_velocity(msg);
 
-      // Transform the velocity at the dvl frame into a noisy TwistWithCovariance Message
-      geometry_msgs::msg::TwistWithCovarianceStamped noisy_msg = get_noisy_measurement(v_dvl,
-                                                                                       msg.header);
+        // Transform the velocity at the dvl frame into a noisy TwistWithCovariance Message
+        geometry_msgs::msg::TwistWithCovarianceStamped noisy_msg = get_noisy_measurement(v_dvl,
+                                                                                        msg.header);
 
-      // publish the message
-      measurement_publisher->publish(noisy_msg);
+        // publish the message
+        measurement_publisher->publish(noisy_msg);
+      }
     } catch (tf2::TransformException & ex) {
       RCLCPP_WARN(this->get_logger(), "Transform failed: %s", ex.what());
+    }
+  }
+  void dvl_config_callback(const dvl_msgs::msg::ConfigCommand & config_msg)
+  {
+    if (config_msg.command == "set_config" && config_msg.parameter_name == "acoustic_enabled") {
+      //setting acoustic enabled, see what the desired setting is
+      if (config_msg.parameter_value == "true") {
+        acoustic_enabled = true;
+        RCLCPP_INFO(this->get_logger(), "DVL Acoustic Has Been Enabled!");
+      } else {
+        acoustic_enabled = false;
+        RCLCPP_INFO(this->get_logger(), "DVL Acoustic Has Been Disabled!");
+      }
     }
   }
 
@@ -197,6 +218,10 @@ private:
   // for getting the correct transformations
   tf2_ros::Buffer tf_buffer_;
   tf2_ros::TransformListener tf_listener_;
+
+  // for the service enabling and disabling the dvl
+  bool acoustic_enabled;
+  rclcpp::Subscription<dvl_msgs::msg::ConfigCommand>::SharedPtr dvl_config_subscription;
 };
 
 // define the main function which actually spins the sensor up

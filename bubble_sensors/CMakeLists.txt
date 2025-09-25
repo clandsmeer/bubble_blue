@@ -22,6 +22,7 @@ find_package(tf2_geometry_msgs REQUIRED)
 find_package(pluginlib REQUIRED)
 find_package(dvl_msgs REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
+find_package(std_srvs REQUIRED)
 
 # uncomment the following section in order to fill in
 # further dependencies manually.
@@ -35,8 +36,8 @@ add_executable(gravity_compensator src/gravity_compensator.cpp)
 add_executable(dvl_message_converter src/dvl_message_converter.cpp)
 add_executable(synchronizer src/synchronizer.cpp)
 ament_target_dependencies(generic_sensor_publisher rclcpp nav_msgs)
-ament_target_dependencies(simulated_dvl rclcpp nav_msgs geometry_msgs tf2 tf2_ros tf2_geometry_msgs)
-ament_target_dependencies(sim_imu_message_converter rclcpp nav_msgs sensor_msgs tf2 tf2_ros tf2_geometry_msgs)
+ament_target_dependencies(simulated_dvl rclcpp nav_msgs geometry_msgs tf2 dvl_msgs tf2_ros tf2_geometry_msgs)
+ament_target_dependencies(sim_imu_message_converter rclcpp nav_msgs std_srvs sensor_msgs tf2 tf2_ros tf2_geometry_msgs)
 ament_target_dependencies(gravity_compensator rclcpp nav_msgs sensor_msgs tf2 tf2_ros tf2_geometry_msgs)
 ament_target_dependencies(dvl_message_converter rclcpp geometry_msgs dvl_msgs)
 ament_target_dependencies(synchronizer rclcpp geometry_msgs sensor_msgs)
@@ -58,6 +59,7 @@ ament_target_dependencies(mavros_sensor_plugin
   tf2
   tf2_ros
   tf2_geometry_msgs
+  std_srvs
   pluginlib)
 
 # Tells mavros where to look for mavros plugins belonging to bubble_sensors
@@ -82,7 +84,7 @@ install(DIRECTORY include/
 install(FILES mavros_plugins.xml
   DESTINATION share/${PROJECT_NAME})
 
-#install the dvl enabler
+# install the dvl enabler
 install(PROGRAMS
   src/initializer.py
   src/vectornav_manager.py
@@ -95,6 +97,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/ConfigureVN100.srv"
   DEPENDENCIES std_msgs
 )
+
 # make sure the launch directory can be accessed so the overall bringup file can launch sensors
 install(
   DIRECTORY launch config
