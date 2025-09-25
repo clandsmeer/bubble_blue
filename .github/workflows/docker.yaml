@@ -116,9 +116,6 @@ jobs:
         with:
           files: |
             .docker/docker-bake.hcl
-            ${{ steps.meta-ci.outputs.bake-file }}
-            ${{ steps.meta-robot.outputs.bake-file }}
-            ${{ steps.meta-desktop.outputs.bake-file }}
           push: ${{ env.PUSH }}
           set: |
             *.cache-from=type=registry,ref=ghcr.io/${{ steps.lowercase-repo.outputs.repository }}:cache-${{ matrix.ROS_DISTRO }}
