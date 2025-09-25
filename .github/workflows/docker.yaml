@@ -64,7 +64,7 @@ jobs:
 
       # Set metadata for each stage-image separately
       - name: Set Docker metadata for "ci"
-        if: env.PUSH == 'true'
+        #if: env.PUSH == 'true'
         id: meta-ci
         uses: docker/metadata-action@v5.7.0
         with:
@@ -74,7 +74,7 @@ jobs:
             type=raw,value=${{ matrix.ROS_DISTRO }}-ci
 
       - name: Set Docker metadata for "robot"
-        if: env.PUSH == 'true'
+        #if: env.PUSH == 'true'
         id: meta-robot
         uses: docker/metadata-action@v5.7.0
         with:
@@ -84,7 +84,7 @@ jobs:
             type=raw,value=${{ matrix.ROS_DISTRO }}-robot
 
       - name: Set Docker metadata for "desktop"
-        if: env.PUSH == 'true'
+        #if: env.PUSH == 'true'
         id: meta-desktop
         uses: docker/metadata-action@v5.7.0
         with:
@@ -134,6 +134,9 @@ jobs:
         with:
           files: |
             .docker/docker-bake.hcl
+            ${{ steps.meta-ci.outputs.bake-file }}
+            ${{ steps.meta-robot.outputs.bake-file }}
+            ${{ steps.meta-desktop.outputs.bake-file }}
           set: |
             *.platform=linux/amd64
             *.cache-from=type=registry,ref=ghcr.io/${{ steps.lowercase-repo.outputs.repository }}:cache-${{ matrix.ROS_DISTRO }}
