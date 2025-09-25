@@ -9,5 +9,10 @@
 !bubble_sensors
 !blue.repos
 !sim.repos
+!.docker/
 !.docker/entrypoints
 !requirements-build.txt
+
+# Allow GitHub Actions metadata files
+!docker-metadata-action-*.json
+!.github/
