@@ -225,7 +225,7 @@ RUN sudo apt-get -q update \
 RUN /bin/bash -c ". /opt/ros/${ROS_DISTRO}/setup.sh \
     && colcon build --packages-select dvl_msgs dvl_a50 \
     && . install/setup.bash \
-    && MAKEFLAGS='-j8 -l6.0' colcon build"
+    && MAKEFLAGS='-j1 -l1' colcon build"
 
 # Setup the simulation environment variables
 RUN  <<EOT cat >> /home/$USERNAME/.bashrc
